@@ -2,6 +2,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Gameplay/Tool.h"
 
 APortal::APortal()
 {
@@ -94,9 +95,9 @@ void APortal::TeleportActor(AActor* ActorToTeleport)
     }
 
     FHitResult HitResult;
-    FVector NewLocation = ConvertLocationToActorSpace(ActorToTeleport->GetActorLocation(), this, Target);
+    FVector NewLocation = UTool::ConvertLocationToActorSpace(ActorToTeleport->GetActorLocation(), this, Target);
     ActorToTeleport->SetActorLocation(NewLocation, false, &HitResult, ETeleportType::TeleportPhysics);
-    FRotator NewRotation = ConvertRotationToActorSpace(ActorToTeleport->GetActorRotation(), this, Target);
+    FRotator NewRotation = UTool::ConvertRotationToActorSpace(ActorToTeleport->GetActorRotation(), this, Target);
     ActorToTeleport->SetActorRotation(NewRotation);
 
     if (ActorToTeleport->IsA(ACharacter::StaticClass()))
@@ -104,7 +105,7 @@ void APortal::TeleportActor(AActor* ActorToTeleport)
         APlayerController* pc = UGameplayStatics::GetPlayerController(GetWorld(), 0);
         if (pc != nullptr)
         {
-            NewRotation = ConvertRotationToActorSpace(pc->GetControlRotation(), this, Target);
+            NewRotation = UTool::ConvertRotationToActorSpace(pc->GetControlRotation(), this, Target);
             pc->SetControlRotation(NewRotation);
         }
 
@@ -137,43 +138,4 @@ void APortal::SetRTT_Implementation(UTexture* RenderTexture)
 
 void APortal::ClearRTT_Implementation()
 {
-}
-
-FVector APortal::ConvertLocationToActorSpace(FVector Location, AActor* Reference, AActor* Target)
-{
-    if (Reference == nullptr || Target == nullptr)
-    {
-        return FVector::ZeroVector;
-    }
-
-    FVector Direction = Location - Reference->GetActorLocation();
-    FVector TargetLocation = Target->GetActorLocation();
-
-    FVector Dots;
-    Dots.X = FVector::DotProduct(Direction, Reference->GetActorForwardVector());
-    Dots.Y = FVector::DotProduct(Direction, Reference->GetActorRightVector());
-    Dots.Z = FVector::DotProduct(Direction, Reference->GetActorUpVector());
-
-    FVector NewDirection = Dots.X * Target->GetActorForwardVector()
-        + Dots.Y * Target->GetActorRightVector()
-        + Dots.Z * Target->GetActorUpVector();
-
-    return TargetLocation + NewDirection;
-}
-
-FRotator APortal::ConvertRotationToActorSpace(FRotator Rotation, AActor* Reference, AActor* Target)
-{
-    if (Reference == nullptr || Target == nullptr)
-    {
-        return FRotator::ZeroRotator;
-    }
-
-    FTransform SourceTransform = Reference->GetActorTransform();
-    FTransform TargetTransform = Target->GetActorTransform();
-    FQuat QuatRotation = FQuat(Rotation);
-
-    FQuat LocalQuat = SourceTransform.GetRotation().Inverse() * QuatRotation;
-    FQuat NewWorldQuat = TargetTransform.GetRotation() * LocalQuat;
-
-    return NewWorldQuat.Rotator();
 }

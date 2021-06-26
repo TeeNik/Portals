@@ -45,5 +45,4 @@ private:
 	AActor* Target;
 	FVector LastPosition;
 	bool LastInFront;
-
 };
