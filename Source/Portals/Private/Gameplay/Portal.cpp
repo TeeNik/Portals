@@ -14,6 +14,9 @@ APortal::APortal()
     PortalRootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
     RootComponent = PortalRootComponent;
 
+    PortalView = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PortalView"));
+    PortalView->SetupAttachment(RootComponent);
+
     SceneCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("SceneCapture"));
     SceneCapture->SetupAttachment(RootComponent);
 
@@ -43,7 +46,13 @@ APortal::APortal()
     CaptureSettings.ScreenPercentage = 100.0f;
 
     SceneCapture->PostProcessSettings = CaptureSettings;
+}
 
+void APortal::BeginPlay()
+{
+    Super::BeginPlay();
+    GeneratePortalTexture();
+    SceneCapture->HiddenComponents.Add(PortalView);
 }
 
 void APortal::Tick(float DeltaTime)
@@ -51,11 +60,7 @@ void APortal::Tick(float DeltaTime)
     Update(DeltaTime);
 }
 
-void APortal::BeginPlay()
-{
-	Super::BeginPlay();
-    GeneratePortalTexture();
-}
+
 
 void APortal::Update(float DeltaTime)
 {
@@ -122,8 +127,13 @@ void APortal::UpdateCapture(USceneCaptureComponent2D* capture, UTextureRenderTar
     FQuat NewWorldQuat = TargetTransform.GetRotation() * LocalQuat;
     capture->SetWorldRotation(NewWorldQuat);
 
-    capture->ClipPlaneNormal = target->GetActorForwardVector();
-    capture->ClipPlaneBase = target->GetActorLocation() + capture->ClipPlaneNormal * -1.5f;
+    capture->ClipPlaneNormal =  target->GetActorForwardVector();
+    const bool IsPlayerInFront = IsPointInFrontOfPortal(capture->GetComponentLocation(), target->GetActorLocation(), target->GetActorForwardVector());
+    if(IsPlayerInFront)
+    {
+        capture->ClipPlaneNormal *= -1.0;
+    }
+    capture->ClipPlaneBase = target->GetActorLocation() + capture->ClipPlaneNormal * ClipPlaneOffset;
 
     SetRTT(texture);
     capture->TextureTarget = texture;
@@ -137,7 +147,6 @@ bool APortal::IsPointInFrontOfPortal(FVector Point, FVector PortalLocation, FVec
 {
     FPlane PortalPlane = FPlane(PortalLocation, PortalNormal);
     float PortalDot = PortalPlane.PlaneDot(Point);
-
     //If < 0 means we are behind the Plane
     return (PortalDot >= 0);
 }

@@ -28,7 +28,8 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	APortal* Target;
-
+	UPROPERTY(EditAnywhere)
+	float ClipPlaneOffset = -1.5f;
 
 	UFUNCTION(BlueprintCallable, Category = "Portal")
 	bool IsPointInFrontOfPortal(FVector Point, FVector PortalLocation, FVector PortalNormal);
@@ -47,6 +48,8 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	USceneComponent* PortalRootComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UStaticMeshComponent* PortalView;
 
 	UPROPERTY(Transient)
 	UTextureRenderTarget2D* PortalTexture = nullptr;
