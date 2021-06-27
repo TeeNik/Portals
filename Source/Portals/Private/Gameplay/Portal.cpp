@@ -3,45 +3,134 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Gameplay/Tool.h"
+#include "Components/SceneCaptureComponent2D.h"
+#include "Engine/TextureRenderTarget2D.h"
 
 APortal::APortal()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	IsActive = false;
 
-    RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
-    RootComponent->Mobility = EComponentMobility::Static;
+    PortalRootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+    RootComponent = PortalRootComponent;
 
-    PortalRootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("PortalRootComponent"));
-    PortalRootComponent->SetupAttachment(GetRootComponent());
-    PortalRootComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
-    PortalRootComponent->SetRelativeRotation(FRotator(0.0f, 0.0f, 0.0f));
-    PortalRootComponent->Mobility = EComponentMobility::Movable;
+    SceneCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("SceneCapture"));
+    SceneCapture->SetupAttachment(RootComponent);
+
+    SceneCapture->bCaptureEveryFrame = false;
+    SceneCapture->bCaptureOnMovement = false;
+    SceneCapture->LODDistanceFactor = 3;
+    SceneCapture->TextureTarget = nullptr;
+    SceneCapture->bEnableClipPlane = true;
+    SceneCapture->bUseCustomProjectionMatrix = true;
+    SceneCapture->CaptureSource = ESceneCaptureSource::SCS_SceneColorHDRNoAlpha;
+
+    FPostProcessSettings CaptureSettings;
+
+    CaptureSettings.bOverride_AmbientOcclusionQuality = true;
+    CaptureSettings.bOverride_MotionBlurAmount = true;
+    CaptureSettings.bOverride_SceneFringeIntensity = true;
+    CaptureSettings.bOverride_GrainIntensity = true;
+    CaptureSettings.bOverride_ScreenSpaceReflectionQuality = true;
+
+    CaptureSettings.AmbientOcclusionQuality = 0.0f;
+    CaptureSettings.MotionBlurAmount = 0.0f;
+    CaptureSettings.SceneFringeIntensity = 0.0f;
+    CaptureSettings.GrainIntensity = 0.0f;
+    CaptureSettings.ScreenSpaceReflectionQuality = 0.0f;
+
+    CaptureSettings.bOverride_ScreenPercentage = true;
+    CaptureSettings.ScreenPercentage = 100.0f;
+
+    SceneCapture->PostProcessSettings = CaptureSettings;
 
 }
 
-// Called when the game starts or when spawned
+void APortal::Tick(float DeltaTime)
+{
+    Update(DeltaTime);
+}
+
 void APortal::BeginPlay()
 {
 	Super::BeginPlay();
-	
+    GeneratePortalTexture();
 }
 
-// Called every frame
-void APortal::Tick(float DeltaTime)
+void APortal::Update(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
-
+    if(IsValid(Target))
+    {
+        UpdateCapture(Target->SceneCapture, PortalTexture, Target);
+    }
 }
 
-AActor* APortal::GetTarget()
+void APortal::GeneratePortalTexture()
 {
-    return Target;
+    int32 CurrentSizeX = 1920;
+    int32 CurrentSizeY = 1080;
+
+    //GetWorld()->GetFirstPlayerController()->GetViewportSize(CurrentSizeX, CurrentSizeY);    //CurrentSizeX = FMath::Clamp(int(CurrentSizeX / 1.7), 128, 1920); //1920 / 1.5 = 128/0
+    //CurrentSizeY = FMath::Clamp(int(CurrentSizeY / 1.7), 128, 1080);
+
+    if (PortalTexture == nullptr)
+    {
+        PortalTexture = NewObject<UTextureRenderTarget2D>(this, UTextureRenderTarget2D::StaticClass(), TEXT("PortalTexture"));
+        check(PortalTexture);
+
+        PortalTexture->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA16f;
+        PortalTexture->Filter = TextureFilter::TF_Bilinear;
+        PortalTexture->SizeX = CurrentSizeX;
+        PortalTexture->SizeY = CurrentSizeY;
+        PortalTexture->ClearColor = FLinearColor::Black;
+        PortalTexture->TargetGamma = 2.2f;
+        PortalTexture->bNeedsTwoCopies = false;
+        PortalTexture->AddressX = TextureAddress::TA_Clamp;
+        PortalTexture->AddressY = TextureAddress::TA_Clamp;
+        PortalTexture->bAutoGenerateMips = false;
+        PortalTexture->UpdateResource();
+    }
 }
 
-void APortal::SetTarget(AActor* InTarget)
+FMatrix APortal::GetCameraProjectionMatrix()
 {
-    Target = InTarget;
+    FMatrix ProjectionMatrix;
+    ULocalPlayer* LocalPlayer = GetWorld()->GetFirstPlayerController()->GetLocalPlayer();
+
+    if (LocalPlayer != nullptr)
+    {
+        FSceneViewProjectionData PlayerProjectionData;
+        LocalPlayer->GetProjectionData(LocalPlayer->ViewportClient->Viewport, EStereoscopicPass::eSSP_FULL, PlayerProjectionData);
+        ProjectionMatrix = PlayerProjectionData.ProjectionMatrix;
+    }
+
+    return ProjectionMatrix;
+}
+
+void APortal::UpdateCapture(USceneCaptureComponent2D* capture, UTextureRenderTarget2D* texture, AActor* target)
+{
+    USceneComponent* cameraTransform = GetWorld()->GetFirstPlayerController()->PlayerCameraManager->GetTransformComponent();
+
+    FVector newLocation = UTool::ConvertLocationToActorSpace(cameraTransform->GetComponentLocation(), this, target);
+    capture->SetWorldLocation(newLocation);
+
+    FTransform CameraTransform = cameraTransform->GetComponentTransform();
+    FTransform SourceTransform = GetActorTransform();
+    FTransform TargetTransform = target->GetActorTransform();
+
+    FQuat LocalQuat = SourceTransform.GetRotation().Inverse() * CameraTransform.GetRotation();
+    FQuat NewWorldQuat = TargetTransform.GetRotation() * LocalQuat;
+    capture->SetWorldRotation(NewWorldQuat);
+
+    capture->ClipPlaneNormal = target->GetActorForwardVector();
+    capture->ClipPlaneBase = target->GetActorLocation() + capture->ClipPlaneNormal * -1.5f;
+
+    SetRTT(texture);
+    capture->TextureTarget = texture;
+    capture->bUseCustomProjectionMatrix = true;
+    capture->CustomProjectionMatrix = GetCameraProjectionMatrix();
+
+    capture->CaptureScene();
 }
 
 bool APortal::IsPointInFrontOfPortal(FVector Point, FVector PortalLocation, FVector PortalNormal)
@@ -127,6 +216,7 @@ void APortal::TeleportActor(AActor* ActorToTeleport)
     //Cleanup Teleport
     LastPosition = NewLocation;
 }
+
 
 void APortal::ForceTick_Implementation()
 {

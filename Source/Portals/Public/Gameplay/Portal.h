@@ -4,6 +4,8 @@
 #include "GameFramework/Actor.h"
 #include "Portal.generated.h"
 
+class USceneCaptureComponent2D;
+
 UCLASS()
 class PORTALS_API APortal : public AActor
 {
@@ -11,6 +13,7 @@ class PORTALS_API APortal : public AActor
 	
 public:	
 	APortal();
+
 	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Portal")
@@ -22,10 +25,10 @@ public:
 	void SetRTT(UTexture* RenderTexture);
 	UFUNCTION(BlueprintNativeEvent, Category = "Portal")
 	void ForceTick();
-	UFUNCTION(BlueprintPure, Category = "Portal")
-	AActor* GetTarget();
-	UFUNCTION(BlueprintCallable, Category = "Portal")
-	void SetTarget(AActor* InTarget);
+
+	UPROPERTY(EditAnywhere)
+	APortal* Target;
+
 
 	UFUNCTION(BlueprintCallable, Category = "Portal")
 	bool IsPointInFrontOfPortal(FVector Point, FVector PortalLocation, FVector PortalNormal);
@@ -34,15 +37,25 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Portal")
 	void TeleportActor(AActor* ActorToTeleport);
 
+	void Update(float DeltaTime);
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	USceneCaptureComponent2D* SceneCapture;
+
 protected:
 	virtual void BeginPlay() override;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	USceneComponent* PortalRootComponent;
 
-private:
 	UPROPERTY(Transient)
-	AActor* Target;
+	UTextureRenderTarget2D* PortalTexture = nullptr;
+
+private:
+	void GeneratePortalTexture();
+	FMatrix GetCameraProjectionMatrix();
+	void UpdateCapture(USceneCaptureComponent2D* capture, UTextureRenderTarget2D* texture, AActor* target);
+
 	FVector LastPosition;
 	bool LastInFront;
 };
