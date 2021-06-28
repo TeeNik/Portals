@@ -60,8 +60,6 @@ void APortal::Tick(float DeltaTime)
     Update(DeltaTime);
 }
 
-
-
 void APortal::Update(float DeltaTime)
 {
     if(IsValid(Target))
@@ -155,16 +153,15 @@ bool APortal::IsPointCrossingPortal(FVector Point, FVector PortalLocation, FVect
 {
     FVector IntersectionPoint;
     FPlane PortalPlane = FPlane(PortalLocation, PortalNormal);
-    float PortalDot = PortalPlane.PlaneDot(Point);
     bool IsCrossing = false;
-    bool IsInFront = PortalDot >= 0;
+    bool IsInFront =  IsPointInFrontOfPortal(Point, PortalLocation, PortalNormal);
 
     bool IsIntersect = FMath::SegmentPlaneIntersection(LastPosition, Point, PortalPlane, IntersectionPoint);
 
     // Did we intersect the portal since last Location ?
     // If yes, check the direction : crossing forward means we were in front and now at the back
     // If we crossed backward, ignore it (similar to Prey 2006)
-    if (IsIntersect && !IsInFront && LastInFront)
+    if (IsIntersect && IsInFront != LastInFront)
     {
         IsCrossing = true;
     }
@@ -178,7 +175,13 @@ bool APortal::IsPointCrossingPortal(FVector Point, FVector PortalLocation, FVect
 
 void APortal::TeleportActor(AActor* ActorToTeleport)
 {
+
     if (ActorToTeleport == nullptr || Target == nullptr)
+    {
+        return;
+    }
+
+    if (!IsPointCrossingPortal(ActorToTeleport->GetActorLocation(), GetActorLocation(), GetActorForwardVector()))
     {
         return;
     }
