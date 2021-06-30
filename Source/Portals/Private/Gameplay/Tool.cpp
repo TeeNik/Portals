@@ -49,6 +49,5 @@ bool UTool::IsPointInFrontOfPortal(FVector Point, FVector PortalLocation, FVecto
 	float PortalDot = PortalPlane.PlaneDot(Point);
 
 	//If < 0 means we are behind the Plane
-    UE_LOG(LogTemp, Log, TEXT("IsPointInFrontOfPortal %d"), PortalDot >= 0);
 	return PortalDot >= 0;
 }

@@ -5,6 +5,8 @@
 #include "Portal.generated.h"
 
 class USceneCaptureComponent2D;
+class IPortable;
+class UBoxComponent;
 
 UCLASS()
 class PORTALS_API APortal : public AActor
@@ -33,8 +35,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Portal")
 	bool IsPointInFrontOfPortal(FVector Point, FVector PortalLocation, FVector PortalNormal);
-	UFUNCTION(BlueprintCallable, Category = "Portal")
-	bool IsPointCrossingPortal(FVector Point, FVector PortalLocation, FVector PortalNormal);
+	//UFUNCTION(BlueprintCallable, Category = "Portal")
+	//bool IsPointCrossingPortal(FVector Point, FVector PortalLocation, FVector PortalNormal);
+	bool IsPointCrossingPortal(IPortable* Portable);
 	UFUNCTION(BlueprintCallable, Category = "Portal")
 	void TeleportActor(AActor* ActorToTeleport);
 
@@ -50,15 +53,21 @@ protected:
 	USceneComponent* PortalRootComponent;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* PortalView;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UBoxComponent* InteractionBox;
 
 	UPROPERTY(Transient)
 	UTextureRenderTarget2D* PortalTexture = nullptr;
 
+	UFUNCTION()
+	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	UFUNCTION()
+	void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
 private:
+	TArray<IPortable*> PortableTargets;
+
 	void GeneratePortalTexture();
 	FMatrix GetCameraProjectionMatrix();
 	void UpdateCapture(USceneCaptureComponent2D* capture, UTextureRenderTarget2D* texture, AActor* target);
-
-	FVector LastPosition;
-	bool LastInFront;
 };
