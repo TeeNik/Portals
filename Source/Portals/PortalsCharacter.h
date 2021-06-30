@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Gameplay/Portable.h"
 #include "PortalsCharacter.generated.h"
 
 class UInputComponent;
@@ -15,7 +16,7 @@ class UAnimMontage;
 class USoundBase;
 
 UCLASS(config=Game)
-class APortalsCharacter : public ACharacter
+class APortalsCharacter : public ACharacter, public IPortable
 {
 	GENERATED_BODY()
 

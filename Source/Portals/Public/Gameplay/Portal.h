@@ -66,6 +66,7 @@ protected:
 
 private:
 	TArray<IPortable*> PortableTargets;
+	bool TickInProgress = false;
 
 	void GeneratePortalTexture();
 	FMatrix GetCameraProjectionMatrix();

@@ -68,17 +68,21 @@ void APortal::Tick(float DeltaTime)
 
     if(PortableTargets.Num() > 0)
     {
-	    for (IPortable* portable : PortableTargets)
-	    {
-            AActor* actor = Cast<AActor>(portable);
-			if(actor)
-			{
-				if(IsPointCrossingPortal(portable))
-				{
-					TeleportActor(actor);
-				}
-			}
-	    }
+        for(int i = 0; i < PortableTargets.Num(); ++i)
+        {
+            AActor* actor = Cast<AActor>(PortableTargets[i]);
+            if (actor)
+            {
+                if (IsPointCrossingPortal(PortableTargets[i]))
+                {
+                    TickInProgress = true;
+                    TeleportActor(actor);
+                    PortableTargets.RemoveAt(i);
+                    --i;
+                    TickInProgress = false;
+                }
+            }
+        }
     }
 }
 
@@ -112,11 +116,10 @@ void APortal::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherAct
     if (portable != nullptr)
     {
         AActor* actor = Cast<AActor>(portable);
-        if(actor && PortableTargets.Contains(portable))
+        if(actor && PortableTargets.Contains(portable) && !TickInProgress)
         {
             PortableTargets.Remove(portable);
         }
-        UE_LOG(LogTemp, Log, TEXT("OnOverlapEnd %s"), *actor->GetName());
     }
 }
 
