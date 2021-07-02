@@ -34,10 +34,8 @@ public:
 	float ClipPlaneOffset = -1.5f;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Portal")
-	bool IsPointInFrontOfPortal(FVector Point);
+	bool IsPointInFrontOfPortal(FVector Point) const;
 
-	//UFUNCTION(BlueprintCallable, Category = "Portal")
-	//bool IsPointCrossingPortal(FVector Point, FVector PortalLocation, FVector PortalNormal);
 	bool IsPointCrossingPortal(IPortable* Portable);
 	UFUNCTION(BlueprintCallable, Category = "Portal")
 	void TeleportActor(AActor* ActorToTeleport);

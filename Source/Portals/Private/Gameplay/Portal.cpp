@@ -167,36 +167,39 @@ FMatrix APortal::GetCameraProjectionMatrix()
 
 void APortal::UpdateCapture()
 {
-    USceneComponent* cameraTransform = GetWorld()->GetFirstPlayerController()->PlayerCameraManager->GetTransformComponent();
+    USceneComponent* cameraTransformComponent = GetWorld()->GetFirstPlayerController()->PlayerCameraManager->GetTransformComponent();
+    USceneCaptureComponent2D* targetCapture = Target->SceneCapture;
 
-    FVector newLocation = UTool::ConvertLocationToActorSpace(cameraTransform->GetComponentLocation(), this, Target);
-    SceneCapture->SetWorldLocation(newLocation);
+    //FVector newLocation = UTool::ConvertLocationToActorSpace(cameraTransform->GetComponentLocation(), this, Target);
+    //targetCapture->SetWorldLocation(newLocation);
 
-    FTransform CameraTransform = cameraTransform->GetComponentTransform();
+    FTransform CameraTransform = cameraTransformComponent->GetComponentTransform();
     FTransform SourceTransform = GetActorTransform();
     FTransform TargetTransform = Target->GetActorTransform();
 
-    FQuat LocalQuat = SourceTransform.GetRotation().Inverse() * CameraTransform.GetRotation();
-    FQuat NewWorldQuat = TargetTransform.GetRotation() * LocalQuat;
-    SceneCapture->SetWorldRotation(NewWorldQuat);
+    FVector newLocation = TargetTransform.TransformPosition(SourceTransform.InverseTransformPosition(CameraTransform.GetLocation()));
+    targetCapture->SetWorldLocation(newLocation);
 
-    SceneCapture->ClipPlaneNormal = Target->GetActorForwardVector();
-    const bool IsPlayerInFront = Target->IsPointInFrontOfPortal(SceneCapture->GetComponentLocation());
-    if(IsPlayerInFront)
+    FQuat newRotation = TargetTransform.TransformRotation(SourceTransform.InverseTransformRotation(CameraTransform.GetRotation()));
+    targetCapture->SetWorldRotation(newRotation);
+
+    targetCapture->ClipPlaneNormal = Target->GetActorForwardVector();
+    const bool IsPlayerInFront = Target->IsPointInFrontOfPortal(targetCapture->GetComponentLocation());
+    if (IsPlayerInFront)
     {
-        SceneCapture->ClipPlaneNormal *= -1.0;
+        targetCapture->ClipPlaneNormal *= -1.0;
     }
-    SceneCapture->ClipPlaneBase = Target->GetActorLocation() + SceneCapture->ClipPlaneNormal * ClipPlaneOffset;
+    targetCapture->ClipPlaneBase = Target->GetActorLocation() + targetCapture->ClipPlaneNormal * ClipPlaneOffset;
 
     SetRTT(PortalTexture);
-    SceneCapture->TextureTarget = PortalTexture;
-    SceneCapture->bUseCustomProjectionMatrix = true;
-    SceneCapture->CustomProjectionMatrix = GetCameraProjectionMatrix();
+    targetCapture->TextureTarget = PortalTexture;
+    targetCapture->bUseCustomProjectionMatrix = true;
+    targetCapture->CustomProjectionMatrix = GetCameraProjectionMatrix();
 
-    SceneCapture->CaptureScene();
+    targetCapture->CaptureScene();
 }
 
-bool APortal::IsPointInFrontOfPortal(FVector Point)
+bool APortal::IsPointInFrontOfPortal(FVector Point) const
 {
     FPlane PortalPlane = FPlane(GetActorLocation(), GetActorForwardVector());
     float PortalDot = PortalPlane.PlaneDot(Point);
