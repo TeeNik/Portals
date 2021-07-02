@@ -73,6 +73,7 @@ void APortalManager::Update(float DeltaTime)
 
 void APortalManager::UpdateCapture(APortal* Portal)
 {
+    /*
     USceneCaptureComponent2D* SceneCapture = Cast<USceneCaptureComponent2D>(SceneCaptureActor->GetComponentByClass(USceneCaptureComponent2D::StaticClass()));
     APortal* target = Portal->Target;
     USceneComponent* cameraTransform = GetWorld()->GetFirstPlayerController()->PlayerCameraManager->GetTransformComponent();
@@ -93,7 +94,7 @@ void APortalManager::UpdateCapture(APortal* Portal)
     SceneCapture->SetWorldRotation(NewWorldQuat);
 
     SceneCapture->ClipPlaneNormal = target->GetActorForwardVector();
-    const bool IsPlayerInFront = Portal->IsPointInFrontOfPortal(SceneCapture->GetComponentLocation(), target->GetActorLocation(), target->GetActorForwardVector());
+    const bool IsPlayerInFront = target->IsPointInFrontOfPortal(SceneCapture->GetComponentLocation());
     if (IsPlayerInFront)
     {
         SceneCapture->ClipPlaneNormal *= -1.0;
@@ -106,6 +107,7 @@ void APortalManager::UpdateCapture(APortal* Portal)
     SceneCapture->CustomProjectionMatrix = GetCameraProjectionMatrix();
 
     SceneCapture->CaptureScene();
+    */
 }
 
 void APortalManager::GeneratePortalTexture()

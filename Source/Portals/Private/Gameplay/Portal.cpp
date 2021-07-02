@@ -90,7 +90,7 @@ void APortal::Update(float DeltaTime)
 {
     if(IsValid(Target))
     {
-        UpdateCapture(Target->SceneCapture, PortalTexture, Target);
+        UpdateCapture();
     }
 }
 
@@ -165,40 +165,40 @@ FMatrix APortal::GetCameraProjectionMatrix()
     return ProjectionMatrix;
 }
 
-void APortal::UpdateCapture(USceneCaptureComponent2D* capture, UTextureRenderTarget2D* texture, AActor* target)
+void APortal::UpdateCapture()
 {
     USceneComponent* cameraTransform = GetWorld()->GetFirstPlayerController()->PlayerCameraManager->GetTransformComponent();
 
-    FVector newLocation = UTool::ConvertLocationToActorSpace(cameraTransform->GetComponentLocation(), this, target);
-    capture->SetWorldLocation(newLocation);
+    FVector newLocation = UTool::ConvertLocationToActorSpace(cameraTransform->GetComponentLocation(), this, Target);
+    SceneCapture->SetWorldLocation(newLocation);
 
     FTransform CameraTransform = cameraTransform->GetComponentTransform();
     FTransform SourceTransform = GetActorTransform();
-    FTransform TargetTransform = target->GetActorTransform();
+    FTransform TargetTransform = Target->GetActorTransform();
 
     FQuat LocalQuat = SourceTransform.GetRotation().Inverse() * CameraTransform.GetRotation();
     FQuat NewWorldQuat = TargetTransform.GetRotation() * LocalQuat;
-    capture->SetWorldRotation(NewWorldQuat);
+    SceneCapture->SetWorldRotation(NewWorldQuat);
 
-    capture->ClipPlaneNormal =  target->GetActorForwardVector();
-    const bool IsPlayerInFront = IsPointInFrontOfPortal(capture->GetComponentLocation(), target->GetActorLocation(), target->GetActorForwardVector());
+    SceneCapture->ClipPlaneNormal = Target->GetActorForwardVector();
+    const bool IsPlayerInFront = Target->IsPointInFrontOfPortal(SceneCapture->GetComponentLocation());
     if(IsPlayerInFront)
     {
-        capture->ClipPlaneNormal *= -1.0;
+        SceneCapture->ClipPlaneNormal *= -1.0;
     }
-    capture->ClipPlaneBase = target->GetActorLocation() + capture->ClipPlaneNormal * ClipPlaneOffset;
+    SceneCapture->ClipPlaneBase = Target->GetActorLocation() + SceneCapture->ClipPlaneNormal * ClipPlaneOffset;
 
-    SetRTT(texture);
-    capture->TextureTarget = texture;
-    capture->bUseCustomProjectionMatrix = true;
-    capture->CustomProjectionMatrix = GetCameraProjectionMatrix();
+    SetRTT(PortalTexture);
+    SceneCapture->TextureTarget = PortalTexture;
+    SceneCapture->bUseCustomProjectionMatrix = true;
+    SceneCapture->CustomProjectionMatrix = GetCameraProjectionMatrix();
 
-    capture->CaptureScene();
+    SceneCapture->CaptureScene();
 }
 
-bool APortal::IsPointInFrontOfPortal(FVector Point, FVector PortalLocation, FVector PortalNormal)
+bool APortal::IsPointInFrontOfPortal(FVector Point)
 {
-    FPlane PortalPlane = FPlane(PortalLocation, PortalNormal);
+    FPlane PortalPlane = FPlane(GetActorLocation(), GetActorForwardVector());
     float PortalDot = PortalPlane.PlaneDot(Point);
     //If < 0 means we are behind the Plane
     return (PortalDot >= 0);
@@ -215,7 +215,7 @@ bool APortal::IsPointCrossingPortal(IPortable* Portable)
 
     FPlane PortalPlane = FPlane(PortalLocation, PortalNormal);
     bool IsCrossing = false;
-    bool IsInFront =  IsPointInFrontOfPortal(Point, PortalLocation, PortalNormal);
+    bool IsInFront =  IsPointInFrontOfPortal(Point);
 
     bool IsIntersect = FMath::SegmentPlaneIntersection(Portable->LastPosition, Point, PortalPlane, IntersectionPoint);
 

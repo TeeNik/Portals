@@ -33,8 +33,9 @@ public:
 	UPROPERTY(EditAnywhere)
 	float ClipPlaneOffset = -1.5f;
 
-	UFUNCTION(BlueprintCallable, Category = "Portal")
-	bool IsPointInFrontOfPortal(FVector Point, FVector PortalLocation, FVector PortalNormal);
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Portal")
+	bool IsPointInFrontOfPortal(FVector Point);
+
 	//UFUNCTION(BlueprintCallable, Category = "Portal")
 	//bool IsPointCrossingPortal(FVector Point, FVector PortalLocation, FVector PortalNormal);
 	bool IsPointCrossingPortal(IPortable* Portable);
@@ -70,5 +71,5 @@ private:
 
 	void GeneratePortalTexture();
 	FMatrix GetCameraProjectionMatrix();
-	void UpdateCapture(USceneCaptureComponent2D* capture, UTextureRenderTarget2D* texture, AActor* target);
+	void UpdateCapture();
 };
