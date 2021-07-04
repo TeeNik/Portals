@@ -16,9 +16,10 @@ class IPortable {
 	GENERATED_BODY()
 
 public:
-	virtual float GetInteractionTime() { return 0; }
-	virtual void OnDeselect() {};
+	virtual void OnEnterPortalThreshold();
+	virtual void OnExitPortalThreshold();
 
+	AActor* Copy = nullptr;
 	FVector LastPosition;
 	bool LastInFront;
 };

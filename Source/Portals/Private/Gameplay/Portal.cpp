@@ -77,6 +77,7 @@ void APortal::Tick(float DeltaTime)
                 {
                     TickInProgress = true;
                     TeleportActor(actor);
+					PortableTargets[i]->OnExitPortalThreshold();
                     PortableTargets.RemoveAt(i);
                     --i;
                     TickInProgress = false;
@@ -102,10 +103,13 @@ void APortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherA
     {
         if(!PortableTargets.Contains(portable))
         {
+            UE_LOG(LogTemp, Log, TEXT("OnOverlapBegin"));
+            FVector point = OtherActor->GetActorLocation();
+            portable->LastInFront = IsPointInFrontOfPortal(point);
+            portable->LastPosition = point;
+            portable->OnEnterPortalThreshold();
             PortableTargets.Add(portable);
         }
-
-        UE_LOG(LogTemp, Log, TEXT("OnOverlapBegin"));
     }
 }
 
@@ -118,6 +122,8 @@ void APortal::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherAct
         AActor* actor = Cast<AActor>(portable);
         if(actor && PortableTargets.Contains(portable) && !TickInProgress)
         {
+            UE_LOG(LogTemp, Log, TEXT("OnOverlapEnd"));
+            portable->OnExitPortalThreshold();
             PortableTargets.Remove(portable);
         }
     }
