@@ -14,4 +14,7 @@ class PORTALS_API APortableActor : public AActor, public IPortable
 public:	
 	APortableActor();
 
+	UFUNCTION(BlueprintCallable)
+	virtual AActor* GetCopy() override;
+
 };

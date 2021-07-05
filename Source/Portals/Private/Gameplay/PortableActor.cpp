@@ -3,3 +3,8 @@
 APortableActor::APortableActor()
 {
 }
+
+AActor* APortableActor::GetCopy()
+{
+	return Copy;
+}
