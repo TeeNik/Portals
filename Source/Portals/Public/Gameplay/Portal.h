@@ -70,4 +70,7 @@ private:
 	void GeneratePortalTexture();
 	FMatrix GetCameraProjectionMatrix();
 	void UpdateCapture();
+
+	FVector ConvertLocationToActorSpace(const FTransform& actor, const FTransform& source, const FTransform& target);
+	FQuat ConvertRotationToActorSpace(const FTransform& actor, const FTransform& source, const FTransform& target);
 };

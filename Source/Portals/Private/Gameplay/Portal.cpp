@@ -70,17 +70,25 @@ void APortal::Tick(float DeltaTime)
     {
         for(int i = 0; i < PortableTargets.Num(); ++i)
         {
-            AActor* actor = Cast<AActor>(PortableTargets[i]);
+            IPortable* portable = PortableTargets[i];
+            AActor* actor = Cast<AActor>(portable);
             if (actor)
             {
-                if (IsPointCrossingPortal(PortableTargets[i]))
+                if (IsPointCrossingPortal(portable))
                 {
                     TickInProgress = true;
                     TeleportActor(actor);
-					PortableTargets[i]->OnExitPortalThreshold();
+                    portable->OnExitPortalThreshold();
                     PortableTargets.RemoveAt(i);
                     --i;
                     TickInProgress = false;
+                } 
+            	else
+                {
+                    UE_LOG(LogTemp, Log, TEXT("Update copy location"));
+                    actor->GetC
+                    portable->Copy->SetActorLocation(ConvertLocationToActorSpace(actor->GetTransform(), GetTransform(), Target->GetTransform()));
+                    portable->Copy->SetActorRotation(ConvertRotationToActorSpace(actor->GetTransform(), GetTransform(), Target->GetTransform()));
                 }
             }
         }
@@ -107,7 +115,7 @@ void APortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherA
             FVector point = OtherActor->GetActorLocation();
             portable->LastInFront = IsPointInFrontOfPortal(point);
             portable->LastPosition = point;
-            portable->OnEnterPortalThreshold();
+            portable->OnEnterPortalThreshold(this);
             PortableTargets.Add(portable);
         }
     }
@@ -134,7 +142,8 @@ void APortal::GeneratePortalTexture()
     int32 CurrentSizeX = 1920;
     int32 CurrentSizeY = 1080;
 
-    //GetWorld()->GetFirstPlayerController()->GetViewportSize(CurrentSizeX, CurrentSizeY);    //CurrentSizeX = FMath::Clamp(int(CurrentSizeX / 1.7), 128, 1920); //1920 / 1.5 = 128/0
+    //GetWorld()->GetFirstPlayerController()->GetViewportSize(CurrentSizeX, CurrentSizeY);
+    //CurrentSizeX = FMath::Clamp(int(CurrentSizeX / 1.7), 128, 1920); //1920 / 1.5 = 128/0
     //CurrentSizeY = FMath::Clamp(int(CurrentSizeY / 1.7), 128, 1080);
 
     if (PortalTexture == nullptr)
@@ -203,6 +212,16 @@ void APortal::UpdateCapture()
     targetCapture->CustomProjectionMatrix = GetCameraProjectionMatrix();
 
     targetCapture->CaptureScene();
+}
+
+FVector APortal::ConvertLocationToActorSpace(const FTransform& actor, const FTransform& source, const FTransform& target)
+{
+    return target.TransformPosition(source.InverseTransformPosition(actor.GetLocation()));
+}
+
+FQuat APortal::ConvertRotationToActorSpace(const FTransform& actor, const FTransform& source, const FTransform& target)
+{
+    return target.TransformRotation(source.InverseTransformRotation(actor.GetRotation()));
 }
 
 bool APortal::IsPointInFrontOfPortal(FVector Point) const
