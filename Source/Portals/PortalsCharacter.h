@@ -1,10 +1,7 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "Gameplay/Portable.h"
 #include "PortalsCharacter.generated.h"
 
 class UInputComponent;
@@ -16,7 +13,7 @@ class UAnimMontage;
 class USoundBase;
 
 UCLASS(config=Game)
-class APortalsCharacter : public ACharacter, public IPortable
+class APortalsCharacter : public ACharacter
 {
 	GENERATED_BODY()
 

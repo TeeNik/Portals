@@ -4,7 +4,6 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Engine/TextureRenderTarget2D.h"
-#include "Gameplay/Tool.h"
 
 APortalsGameMode::APortalsGameMode() : Super()
 {
@@ -43,25 +42,25 @@ FMatrix APortalsGameMode::GetCameraProjectionMatrix()
 
 void APortalsGameMode::UpdateCapture(USceneCaptureComponent2D* capture, UTextureRenderTarget2D* texture, AActor* portal, AActor* target)
 {
-	USceneComponent* cameraTransform = GetWorld()->GetFirstPlayerController()->PlayerCameraManager->GetTransformComponent();
-
-	FVector newLocation = UTool::ConvertLocationToActorSpace(cameraTransform->GetComponentLocation(), portal, target);
-	capture->GetOwner()->SetActorLocation(newLocation);
-
-	FTransform CameraTransform = cameraTransform->GetComponentTransform();
-	FTransform SourceTransform = portal->GetActorTransform();
-	FTransform TargetTransform = target->GetActorTransform();
-
-	FQuat LocalQuat = SourceTransform.GetRotation().Inverse() * CameraTransform.GetRotation();
-	FQuat NewWorldQuat = TargetTransform.GetRotation() * LocalQuat;
-	capture->GetOwner()->SetActorRotation(NewWorldQuat);
-
-	capture->ClipPlaneNormal = target->GetActorForwardVector();
-	capture->ClipPlaneBase = target->GetActorLocation() + capture->ClipPlaneNormal * -1.5f;
-
-	capture->TextureTarget = texture;
-	capture->bUseCustomProjectionMatrix = true;
-	capture->CustomProjectionMatrix = GetCameraProjectionMatrix();
-
-	capture->CaptureScene();
+	//USceneComponent* cameraTransform = GetWorld()->GetFirstPlayerController()->PlayerCameraManager->GetTransformComponent();
+	//
+	//FVector newLocation = UTool::ConvertLocationToActorSpace(cameraTransform->GetComponentLocation(), portal, target);
+	//capture->GetOwner()->SetActorLocation(newLocation);
+	//
+	//FTransform CameraTransform = cameraTransform->GetComponentTransform();
+	//FTransform SourceTransform = portal->GetActorTransform();
+	//FTransform TargetTransform = target->GetActorTransform();
+	//
+	//FQuat LocalQuat = SourceTransform.GetRotation().Inverse() * CameraTransform.GetRotation();
+	//FQuat NewWorldQuat = TargetTransform.GetRotation() * LocalQuat;
+	//capture->GetOwner()->SetActorRotation(NewWorldQuat);
+	//
+	//capture->ClipPlaneNormal = target->GetActorForwardVector();
+	//capture->ClipPlaneBase = target->GetActorLocation() + capture->ClipPlaneNormal * -1.5f;
+	//
+	//capture->TextureTarget = texture;
+	//capture->bUseCustomProjectionMatrix = true;
+	//capture->CustomProjectionMatrix = GetCameraProjectionMatrix();
+	//
+	//capture->CaptureScene();
 }

@@ -2,11 +2,10 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Gameplay/Tool.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Components/BoxComponent.h"
-#include "Gameplay/Portable.h"
+#include "Gameplay/PortableComponent.h"
 
 APortal::APortal()
 {
@@ -70,8 +69,8 @@ void APortal::Tick(float DeltaTime)
     {
         for(int i = 0; i < PortableTargets.Num(); ++i)
         {
-            IPortable* portable = PortableTargets[i];
-            AActor* actor = Cast<AActor>(portable);
+            UPortableComponent* portable = PortableTargets[i];
+            AActor* actor = portable->GetOwner();
             if (actor)
             {
                 if (IsPointCrossingPortal(portable))
@@ -85,10 +84,12 @@ void APortal::Tick(float DeltaTime)
                 } 
             	else
                 {
-                    UE_LOG(LogTemp, Log, TEXT("Update copy location"));
-                    actor->GetC
-                    portable->Copy->SetActorLocation(ConvertLocationToActorSpace(actor->GetTransform(), GetTransform(), Target->GetTransform()));
-                    portable->Copy->SetActorRotation(ConvertRotationToActorSpace(actor->GetTransform(), GetTransform(), Target->GetTransform()));
+                    if(IsValid(portable->Copy))
+                    {
+                        UE_LOG(LogTemp, Log, TEXT("Update copy location"));
+                        portable->Copy->SetActorLocation(ConvertLocationToActorSpace(actor->GetTransform(), GetTransform(), Target->GetTransform()));
+                        portable->Copy->SetActorRotation(ConvertRotationToActorSpace(actor->GetTransform(), GetTransform(), Target->GetTransform()));
+                    }
                 }
             }
         }
@@ -106,10 +107,11 @@ void APortal::Update(float DeltaTime)
 void APortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 	int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-    IPortable* portable = Cast<IPortable>(OtherActor);
-    if(portable != nullptr)
+    UActorComponent* component = OtherActor->GetComponentByClass(UPortableComponent::StaticClass());
+    if(component)
     {
-        if(!PortableTargets.Contains(portable))
+        UPortableComponent* portable = Cast<UPortableComponent>(component);
+        if (!PortableTargets.Contains(portable))
         {
             UE_LOG(LogTemp, Log, TEXT("OnOverlapBegin"));
             FVector point = OtherActor->GetActorLocation();
@@ -124,16 +126,16 @@ void APortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherA
 void APortal::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 	int32 OtherBodyIndex)
 {
-    IPortable* portable = Cast<IPortable>(OtherActor);
-    if (portable != nullptr)
+    UActorComponent* component = OtherActor->GetComponentByClass(UPortableComponent::StaticClass());
+    if (component)
     {
-        AActor* actor = Cast<AActor>(portable);
-        if(actor && PortableTargets.Contains(portable) && !TickInProgress)
-        {
+        UPortableComponent* portable = Cast<UPortableComponent>(component);
+	    if(PortableTargets.Contains(portable) && !TickInProgress)
+	    {
             UE_LOG(LogTemp, Log, TEXT("OnOverlapEnd"));
             portable->OnExitPortalThreshold();
             PortableTargets.Remove(portable);
-        }
+	    }
     }
 }
 
@@ -232,13 +234,13 @@ bool APortal::IsPointInFrontOfPortal(FVector Point) const
     return (PortalDot >= 0);
 }
 
-bool APortal::IsPointCrossingPortal(IPortable* Portable)
+bool APortal::IsPointCrossingPortal(UPortableComponent* Portable)
 {
     FVector IntersectionPoint;
     FVector PortalLocation = GetActorLocation();
     FVector PortalNormal = GetActorForwardVector();
 
-    AActor* actor = Cast<AActor>(Portable);
+    AActor* actor = Portable->GetOwner();
     FVector Point = actor->GetActorLocation();
 
     FPlane PortalPlane = FPlane(PortalLocation, PortalNormal);
@@ -247,9 +249,7 @@ bool APortal::IsPointCrossingPortal(IPortable* Portable)
 
     bool IsIntersect = FMath::SegmentPlaneIntersection(Portable->LastPosition, Point, PortalPlane, IntersectionPoint);
 
-    // Did we intersect the portal since last Location ?
-    // If yes, check the direction : crossing forward means we were in front and now at the back
-    // If we crossed backward, ignore it (similar to Prey 2006)
+    
     if (IsIntersect && IsInFront != Portable->LastInFront)
     {
         IsCrossing = true;
@@ -280,9 +280,9 @@ void APortal::TeleportActor(AActor* ActorToTeleport)
     }
 
     FHitResult HitResult;
-    FVector NewLocation = UTool::ConvertLocationToActorSpace(ActorToTeleport->GetActorLocation(), this, Target);
+    FVector NewLocation = ConvertLocationToActorSpace(ActorToTeleport->GetTransform(), GetTransform(), Target->GetTransform());
     ActorToTeleport->SetActorLocation(NewLocation, false, &HitResult, ETeleportType::TeleportPhysics);
-    FRotator NewRotation = UTool::ConvertRotationToActorSpace(ActorToTeleport->GetActorRotation(), this, Target);
+    FQuat NewRotation = ConvertRotationToActorSpace(ActorToTeleport->GetTransform(), GetTransform(), Target->GetTransform());
     ActorToTeleport->SetActorRotation(NewRotation);
 
     if (ActorToTeleport->IsA(ACharacter::StaticClass()))
@@ -290,11 +290,10 @@ void APortal::TeleportActor(AActor* ActorToTeleport)
         APlayerController* pc = UGameplayStatics::GetPlayerController(GetWorld(), 0);
         if (pc != nullptr)
         {
-            NewRotation = UTool::ConvertRotationToActorSpace(pc->GetControlRotation(), this, Target);
-            pc->SetControlRotation(NewRotation);
+            NewRotation = Target->GetTransform().TransformRotation(GetTransform().InverseTransformRotation(pc->GetControlRotation().Quaternion()));
+            pc->SetControlRotation(NewRotation.Rotator());
         }
 
-        //Reapply Velocity (Need to reorient direction into local space of Portal)
         {
             FVector Dots;
             Dots.X = FVector::DotProduct(savedVelocity, GetActorForwardVector());
@@ -309,10 +308,9 @@ void APortal::TeleportActor(AActor* ActorToTeleport)
         }
     }
 
-    //Cleanup Teleport
-    Cast<IPortable>(ActorToTeleport)->LastPosition = NewLocation;
+    UPortableComponent* portable = Cast<UPortableComponent>(ActorToTeleport->GetComponentByClass(UPortableComponent::StaticClass()));
+    portable->LastPosition = NewLocation;
 }
-
 
 void APortal::ForceTick_Implementation()
 {

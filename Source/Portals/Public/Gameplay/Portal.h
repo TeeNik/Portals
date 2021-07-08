@@ -7,6 +7,7 @@
 class USceneCaptureComponent2D;
 class IPortable;
 class UBoxComponent;
+class UPortableComponent;
 
 UCLASS()
 class PORTALS_API APortal : public AActor
@@ -36,7 +37,7 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Portal")
 	bool IsPointInFrontOfPortal(FVector Point) const;
 
-	bool IsPointCrossingPortal(IPortable* Portable);
+	bool IsPointCrossingPortal(UPortableComponent* Portable);
 	UFUNCTION(BlueprintCallable, Category = "Portal")
 	void TeleportActor(AActor* ActorToTeleport);
 
@@ -64,7 +65,7 @@ protected:
 	void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 private:
-	TArray<IPortable*> PortableTargets;
+	TArray<UPortableComponent*> PortableTargets;
 	bool TickInProgress = false;
 
 	void GeneratePortalTexture();

@@ -1,7 +1,6 @@
 #include "Gameplay/PortalManager.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Engine/TextureRenderTarget2D.h"
-#include "Gameplay/Tool.h"
 #include "Gameplay/Portal.h"
 #include "EngineUtils.h"
 
