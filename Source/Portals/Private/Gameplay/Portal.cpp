@@ -6,6 +6,7 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "Components/BoxComponent.h"
 #include "Gameplay/PortableComponent.h"
+#include "Gameplay/PortalPlayer.h"
 
 APortal::APortal()
 {
@@ -63,7 +64,9 @@ void APortal::BeginPlay()
 
 void APortal::Tick(float DeltaTime)
 {
-    Update(DeltaTime);
+    Super::Tick(DeltaTime);
+
+    UpdateCapture();
 
     if(PortableTargets.Num() > 0)
     {
@@ -76,8 +79,11 @@ void APortal::Tick(float DeltaTime)
                 if (IsPointCrossingPortal(portable))
                 {
                     TickInProgress = true;
+                    OnTeleportUsed();
+                    Cast<UPortalPlayer>(GetWorld()->GetFirstPlayerController()->GetLocalPlayer())->CameraCut();
                     TeleportActor(actor);
                     portable->OnExitPortalThreshold();
+                    Target->UpdateCapture();
                     PortableTargets.RemoveAt(i);
                     --i;
                     TickInProgress = false;
@@ -93,14 +99,6 @@ void APortal::Tick(float DeltaTime)
                 }
             }
         }
-    }
-}
-
-void APortal::Update(float DeltaTime)
-{
-    if(IsValid(Target))
-    {
-        UpdateCapture();
     }
 }
 
@@ -171,9 +169,11 @@ FMatrix APortal::GetCameraProjectionMatrix()
 {
     FMatrix ProjectionMatrix;
     ULocalPlayer* LocalPlayer = GetWorld()->GetFirstPlayerController()->GetLocalPlayer();
+    UE_LOG(LogTemp, Log, TEXT("GetCameraProjectionMatrix"));
 
     if (LocalPlayer != nullptr)
     {
+        UE_LOG(LogTemp, Log, TEXT("LocalPlayer != nullptr"));
         FSceneViewProjectionData PlayerProjectionData;
         LocalPlayer->GetProjectionData(LocalPlayer->ViewportClient->Viewport, EStereoscopicPass::eSSP_FULL, PlayerProjectionData);
         ProjectionMatrix = PlayerProjectionData.ProjectionMatrix;
@@ -186,9 +186,6 @@ void APortal::UpdateCapture()
 {
     USceneComponent* cameraTransformComponent = GetWorld()->GetFirstPlayerController()->PlayerCameraManager->GetTransformComponent();
     USceneCaptureComponent2D* targetCapture = Target->SceneCapture;
-
-    //FVector newLocation = UTool::ConvertLocationToActorSpace(cameraTransform->GetComponentLocation(), this, Target);
-    //targetCapture->SetWorldLocation(newLocation);
 
     FTransform CameraTransform = cameraTransformComponent->GetComponentTransform();
     FTransform SourceTransform = GetActorTransform();
@@ -211,8 +208,7 @@ void APortal::UpdateCapture()
     SetRTT(PortalTexture);
     targetCapture->TextureTarget = PortalTexture;
     targetCapture->bUseCustomProjectionMatrix = true;
-    targetCapture->CustomProjectionMatrix = GetCameraProjectionMatrix();
-
+    targetCapture->CustomProjectionMatrix = Cast<UPortalPlayer>(GetWorld()->GetFirstPlayerController()->GetLocalPlayer())->GetCameraProjectionMatrix();
     targetCapture->CaptureScene();
 }
 
@@ -249,13 +245,11 @@ bool APortal::IsPointCrossingPortal(UPortableComponent* Portable)
 
     bool IsIntersect = FMath::SegmentPlaneIntersection(Portable->LastPosition, Point, PortalPlane, IntersectionPoint);
 
-    
     if (IsIntersect && IsInFront != Portable->LastInFront)
     {
         IsCrossing = true;
     }
 
-    // Store values for next check
     Portable->LastInFront = IsInFront;
     Portable->LastPosition = Point;
 
@@ -293,6 +287,7 @@ void APortal::TeleportActor(AActor* ActorToTeleport)
             NewRotation = Target->GetTransform().TransformRotation(GetTransform().InverseTransformRotation(pc->GetControlRotation().Quaternion()));
             pc->SetControlRotation(NewRotation.Rotator());
         }
+
 
         {
             FVector Dots;

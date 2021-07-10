@@ -29,7 +29,7 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = "Portal")
 	void ForceTick();
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	APortal* Target;
 	UPROPERTY(EditAnywhere)
 	float ClipPlaneOffset = -1.5f;
@@ -41,10 +41,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Portal")
 	void TeleportActor(AActor* ActorToTeleport);
 
-	void Update(float DeltaTime);
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	USceneCaptureComponent2D* SceneCapture;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnTeleportUsed();
+
+	void UpdateCapture();
 
 protected:
 	virtual void BeginPlay() override;
@@ -70,7 +73,6 @@ private:
 
 	void GeneratePortalTexture();
 	FMatrix GetCameraProjectionMatrix();
-	void UpdateCapture();
 
 	FVector ConvertLocationToActorSpace(const FTransform& actor, const FTransform& source, const FTransform& target);
 	FQuat ConvertRotationToActorSpace(const FTransform& actor, const FTransform& source, const FTransform& target);

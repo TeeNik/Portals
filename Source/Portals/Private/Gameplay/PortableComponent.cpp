@@ -3,18 +3,6 @@
 
 UPortableComponent::UPortableComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
-}
-
-
-void UPortableComponent::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
-void UPortableComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
 void UPortableComponent::OnEnterPortalThreshold(APortal* portal)
@@ -41,4 +29,12 @@ void UPortableComponent::OnExitPortalThreshold()
 		Copy->SetActorHiddenInGame(true);
 	}
 	Portal = nullptr;
+}
+
+void UPortableComponent::Teleport(const FVector& newLocation, const FQuat& newRotation)
+{
+	FHitResult HitResult;
+	GetOwner()->SetActorLocation(newLocation, false, &HitResult, ETeleportType::TeleportPhysics);
+	GetOwner()->SetActorRotation(newRotation);
+	LastPosition = newLocation;
 }

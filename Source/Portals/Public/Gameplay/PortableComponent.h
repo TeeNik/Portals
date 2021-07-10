@@ -14,15 +14,14 @@ class PORTALS_API UPortableComponent : public UActorComponent
 public:	
 	UPortableComponent();
 
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
 	virtual void OnEnterPortalThreshold(APortal* portal);
 	virtual void OnExitPortalThreshold();
+	virtual void Teleport(const FVector& newLocation, const FQuat& newRotation);
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AActor> CopyClass;
 	
-	UPROPERTY(Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Transient)
 	AActor* Copy = nullptr;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient)
 	APortal* Portal = nullptr;
@@ -30,7 +29,4 @@ public:
 	FVector LastPosition;
 	bool LastInFront;
 
-protected:
-	virtual void BeginPlay() override;
-		
 };
