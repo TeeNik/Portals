@@ -80,7 +80,6 @@ void APortal::Tick(float DeltaTime)
                 if (IsPointCrossingPortal(portable))
                 {
                     TickInProgress = true;
-                    OnTeleportUsed();
                     Cast<UPortalPlayer>(GetWorld()->GetFirstPlayerController()->GetLocalPlayer())->CameraCut();
                     TeleportActor(actor);
                     portable->OnExitPortalThreshold();
@@ -181,6 +180,47 @@ FMatrix APortal::GetCameraProjectionMatrix()
     }
 
     return ProjectionMatrix;
+}
+
+void APortal::CustomTick(float DeltaTime)
+{
+    SetMaterialScale(0.0);
+    ClearRTT();
+    UpdateCapture();
+
+    if (PortableTargets.Num() > 0)
+    {
+        for (int i = 0; i < PortableTargets.Num(); ++i)
+        {
+            UPortableComponent* portable = PortableTargets[i];
+            AActor* actor = portable->GetOwner();
+            if (actor)
+            {
+                if (IsPointCrossingPortal(portable))
+                {
+                    TickInProgress = true;
+                    Cast<UPortalPlayer>(GetWorld()->GetFirstPlayerController()->GetLocalPlayer())->CameraCut();
+                    TeleportActor(actor);
+                    portable->OnExitPortalThreshold();
+                    SetMaterialScale(1.0);
+                    Target->SetMaterialScale(1.0);
+                    Target->UpdateCapture();
+                    PortableTargets.RemoveAt(i);
+                    --i;
+                    TickInProgress = false;
+                }
+                else
+                {
+                    if (IsValid(portable->Copy))
+                    {
+                        UE_LOG(LogTemp, Log, TEXT("Update copy location"));
+                        portable->Copy->SetActorLocation(ConvertLocationToActorSpace(actor->GetTransform(), GetTransform(), Target->GetTransform()));
+                        portable->Copy->SetActorRotation(ConvertRotationToActorSpace(actor->GetTransform(), GetTransform(), Target->GetTransform()));
+                    }
+                }
+            }
+        }
+    }
 }
 
 void APortal::UpdateCapture()

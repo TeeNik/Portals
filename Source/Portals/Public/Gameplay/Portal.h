@@ -45,9 +45,12 @@ public:
 	USceneCaptureComponent2D* SceneCapture;
 
 	UFUNCTION(BlueprintImplementableEvent)
-	void OnTeleportUsed();
+	void SetMaterialScale(float scale);
+
+	void CustomTick(float DeltaTime);
 
 	void UpdateCapture();
+	void UpdateWorldOffset();
 
 protected:
 	virtual void BeginPlay() override;
