@@ -12,6 +12,7 @@ FSceneView* UPortalPlayer::CalcSceneView(FSceneViewFamily* ViewFamily, FVector& 
     if (UseCameraCut)
     {
         view->bCameraCut = true;
+        UseCameraCut = false;
     }
     return view;
 }

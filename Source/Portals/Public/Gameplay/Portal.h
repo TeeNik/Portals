@@ -46,8 +46,8 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void SetMaterialScale(float scale);
-
-	void CustomTick(float DeltaTime);
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnTeleportUsed(bool isTarget);
 
 	void UpdateCapture();
 	void UpdateWorldOffset();
@@ -75,8 +75,9 @@ private:
 	bool TickInProgress = false;
 
 	void GeneratePortalTexture();
-	FMatrix GetCameraProjectionMatrix();
 
 	FVector ConvertLocationToActorSpace(const FTransform& actor, const FTransform& source, const FTransform& target);
 	FQuat ConvertRotationToActorSpace(const FTransform& actor, const FTransform& source, const FTransform& target);
+	FVector ConvertDirectionToTarget(FVector direction);
+
 };

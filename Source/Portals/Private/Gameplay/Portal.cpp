@@ -7,6 +7,8 @@
 #include "Components/BoxComponent.h"
 #include "Gameplay/PortableComponent.h"
 #include "Gameplay/PortalPlayer.h"
+#include "DrawDebugHelpers.h"
+#include "Kismet/KismetMathLibrary.h"
 
 APortal::APortal()
 {
@@ -65,8 +67,6 @@ void APortal::BeginPlay()
 
 void APortal::Tick(float DeltaTime)
 {
-    Super::Tick(DeltaTime);
-
     UpdateCapture();
 
     if(PortableTargets.Num() > 0)
@@ -80,9 +80,14 @@ void APortal::Tick(float DeltaTime)
                 if (IsPointCrossingPortal(portable))
                 {
                     TickInProgress = true;
-                    Cast<UPortalPlayer>(GetWorld()->GetFirstPlayerController()->GetLocalPlayer())->CameraCut();
-                    TeleportActor(actor);
-                    portable->OnExitPortalThreshold();
+                    //Cast<UPortalPlayer>(GetWorld()->GetFirstPlayerController()->GetLocalPlayer())->CameraCut();
+
+                    OnTeleportUsed(false);
+                    Target->OnTeleportUsed(true);
+                	
+                	TeleportActor(actor);
+
+                    //portable->OnExitPortalThreshold();
                     Target->UpdateCapture();
                     PortableTargets.RemoveAt(i);
                     --i;
@@ -100,6 +105,8 @@ void APortal::Tick(float DeltaTime)
             }
         }
     }
+
+    Super::Tick(DeltaTime);
 }
 
 void APortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
@@ -165,64 +172,6 @@ void APortal::GeneratePortalTexture()
     }
 }
 
-FMatrix APortal::GetCameraProjectionMatrix()
-{
-    FMatrix ProjectionMatrix;
-    ULocalPlayer* LocalPlayer = GetWorld()->GetFirstPlayerController()->GetLocalPlayer();
-    UE_LOG(LogTemp, Log, TEXT("GetCameraProjectionMatrix"));
-
-    if (LocalPlayer != nullptr)
-    {
-        UE_LOG(LogTemp, Log, TEXT("LocalPlayer != nullptr"));
-        FSceneViewProjectionData PlayerProjectionData;
-        LocalPlayer->GetProjectionData(LocalPlayer->ViewportClient->Viewport, EStereoscopicPass::eSSP_FULL, PlayerProjectionData);
-        ProjectionMatrix = PlayerProjectionData.ProjectionMatrix;
-    }
-
-    return ProjectionMatrix;
-}
-
-void APortal::CustomTick(float DeltaTime)
-{
-    SetMaterialScale(0.0);
-    ClearRTT();
-    UpdateCapture();
-
-    if (PortableTargets.Num() > 0)
-    {
-        for (int i = 0; i < PortableTargets.Num(); ++i)
-        {
-            UPortableComponent* portable = PortableTargets[i];
-            AActor* actor = portable->GetOwner();
-            if (actor)
-            {
-                if (IsPointCrossingPortal(portable))
-                {
-                    TickInProgress = true;
-                    Cast<UPortalPlayer>(GetWorld()->GetFirstPlayerController()->GetLocalPlayer())->CameraCut();
-                    TeleportActor(actor);
-                    portable->OnExitPortalThreshold();
-                    SetMaterialScale(1.0);
-                    Target->SetMaterialScale(1.0);
-                    Target->UpdateCapture();
-                    PortableTargets.RemoveAt(i);
-                    --i;
-                    TickInProgress = false;
-                }
-                else
-                {
-                    if (IsValid(portable->Copy))
-                    {
-                        UE_LOG(LogTemp, Log, TEXT("Update copy location"));
-                        portable->Copy->SetActorLocation(ConvertLocationToActorSpace(actor->GetTransform(), GetTransform(), Target->GetTransform()));
-                        portable->Copy->SetActorRotation(ConvertRotationToActorSpace(actor->GetTransform(), GetTransform(), Target->GetTransform()));
-                    }
-                }
-            }
-        }
-    }
-}
-
 void APortal::UpdateCapture()
 {
     USceneComponent* cameraTransformComponent = GetWorld()->GetFirstPlayerController()->PlayerCameraManager->GetTransformComponent();
@@ -238,13 +187,26 @@ void APortal::UpdateCapture()
     FQuat newRotation = TargetTransform.TransformRotation(SourceTransform.InverseTransformRotation(CameraTransform.GetRotation()));
     targetCapture->SetWorldRotation(newRotation);
 
-    targetCapture->ClipPlaneNormal = Target->GetActorForwardVector();
-    const bool IsPlayerInFront = Target->IsPointInFrontOfPortal(targetCapture->GetComponentLocation());
-    if (IsPlayerInFront)
+    UE_LOG(LogTemp, Log, TEXT("Name: %s"), *GetName());
+    //UE_LOG(LogTemp, Log, TEXT("Player: %s"), *CameraTransform.GetLocation().ToString());
+    //UE_LOG(LogTemp, Log, TEXT("Source: %s"), *SourceTransform.GetLocation().ToString());
+    //UE_LOG(LogTemp, Log, TEXT("Target: %s"), *TargetTransform.GetLocation().ToString());
+    //UE_LOG(LogTemp, Log, TEXT("Capture: %s"), *newLocation.ToString());
+
+    bool isInsidePortal = UKismetMathLibrary::IsPointInBox(CameraTransform.GetLocation(), InteractionBox->GetComponentLocation(), InteractionBox->Bounds.BoxExtent * 2);
+    UE_LOG(LogTemp, Log, TEXT("isInsidePortal: %d"), isInsidePortal);
+    targetCapture->bEnableClipPlane = !isInsidePortal;
+    if(!isInsidePortal)
     {
-        targetCapture->ClipPlaneNormal *= -1.0;
+        targetCapture->ClipPlaneNormal = Target->GetActorForwardVector();
+        const bool IsPlayerInFront = Target->IsPointInFrontOfPortal(targetCapture->GetComponentLocation());
+        if (IsPlayerInFront)
+        {
+            targetCapture->ClipPlaneNormal *= -1.0;
+        }
+        targetCapture->ClipPlaneBase = Target->GetActorLocation() + targetCapture->ClipPlaneNormal * ClipPlaneOffset;
     }
-    targetCapture->ClipPlaneBase = Target->GetActorLocation() + targetCapture->ClipPlaneNormal * ClipPlaneOffset;
+    //DrawDebugBox(GetWorld(), PortalView->GetComponentLocation(), PortalView->Bounds.BoxExtent, FColor::Green);
 
     SetRTT(PortalTexture);
     targetCapture->TextureTarget = PortalTexture;
@@ -261,6 +223,19 @@ FVector APortal::ConvertLocationToActorSpace(const FTransform& actor, const FTra
 FQuat APortal::ConvertRotationToActorSpace(const FTransform& actor, const FTransform& source, const FTransform& target)
 {
     return target.TransformRotation(source.InverseTransformRotation(actor.GetRotation()));
+}
+
+FVector APortal::ConvertDirectionToTarget(FVector direction)
+{
+    FVector flippedVel;
+    flippedVel.X = FVector::DotProduct(direction, GetActorForwardVector());
+    flippedVel.Y = FVector::DotProduct(direction, GetActorRightVector());
+    flippedVel.Z = FVector::DotProduct(direction, GetActorUpVector());
+    FVector newVelocity = flippedVel.X * Target->GetActorForwardVector()
+        + flippedVel.Y * Target->GetActorRightVector()
+        + flippedVel.Z * Target->GetActorUpVector();
+
+    return newVelocity;
 }
 
 bool APortal::IsPointInFrontOfPortal(FVector Point) const
@@ -299,7 +274,6 @@ bool APortal::IsPointCrossingPortal(UPortableComponent* Portable)
 
 void APortal::TeleportActor(AActor* ActorToTeleport)
 {
-
     if (ActorToTeleport == nullptr || Target == nullptr)
     {
         return;
@@ -314,11 +288,19 @@ void APortal::TeleportActor(AActor* ActorToTeleport)
         savedVelocity = character->GetCharacterMovement()->Velocity;
     }
 
+    UPrimitiveComponent* prim = Cast<UPrimitiveComponent>(ActorToTeleport->GetRootComponent());
+    FVector newLinearVelocity = ConvertDirectionToTarget(prim->GetPhysicsLinearVelocity());
+    FVector newAngularVelocity = ConvertDirectionToTarget(prim->GetPhysicsAngularVelocityInDegrees());
+    prim->SetPhysicsLinearVelocity(newLinearVelocity);
+    prim->SetPhysicsAngularVelocityInDegrees(newAngularVelocity);
+
     FHitResult HitResult;
     FVector NewLocation = ConvertLocationToActorSpace(ActorToTeleport->GetTransform(), GetTransform(), Target->GetTransform());
     ActorToTeleport->SetActorLocation(NewLocation, false, &HitResult, ETeleportType::TeleportPhysics);
     FQuat NewRotation = ConvertRotationToActorSpace(ActorToTeleport->GetTransform(), GetTransform(), Target->GetTransform());
     ActorToTeleport->SetActorRotation(NewRotation);
+
+    UE_LOG(LogTemp, Log, TEXT("Teleport to : %s"), *NewLocation.ToString());
 
     if (ActorToTeleport->IsA(ACharacter::StaticClass()))
     {
