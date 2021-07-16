@@ -196,7 +196,7 @@ void APortal::UpdateCapture()
     bool isInsidePortal = UKismetMathLibrary::IsPointInBox(CameraTransform.GetLocation(), InteractionBox->GetComponentLocation(), InteractionBox->Bounds.BoxExtent * 2);
     UE_LOG(LogTemp, Log, TEXT("isInsidePortal: %d"), isInsidePortal);
     targetCapture->bEnableClipPlane = !isInsidePortal;
-    if(!isInsidePortal)
+	if(!isInsidePortal)
     {
         targetCapture->ClipPlaneNormal = Target->GetActorForwardVector();
         const bool IsPlayerInFront = Target->IsPointInFrontOfPortal(targetCapture->GetComponentLocation());
@@ -211,35 +211,7 @@ void APortal::UpdateCapture()
     targetCapture->TextureTarget = PortalTexture;
     targetCapture->bUseCustomProjectionMatrix = true;
     targetCapture->CustomProjectionMatrix = Cast<UPortalPlayer>(GetWorld()->GetFirstPlayerController()->GetLocalPlayer())->GetCameraProjectionMatrix();
-
-    int recursionAmount = 1;
-    for (int i = recursionAmount; i >= 0; i--)
-    {
-        // Update location of the scene capture.
-        FVector recursiveCamLoc = newLocation;
-        FRotator recursiveCamRot = newRotation.Rotator();
-        for (int p = 0; p < i; p++)
-        {
-            recursiveCamLoc = ConvertLocationToActorSpace(recursiveCamLoc, SourceTransform, TargetTransform);
-            recursiveCamRot = ConvertRotationToActorSpace(recursiveCamRot, SourceTransform, TargetTransform).Rotator();
-        }
-        targetCapture->SetWorldLocationAndRotation(recursiveCamLoc, recursiveCamRot);
-
-        if (i == recursionAmount) PortalView->SetVisibility(false);
-
-        targetCapture->CaptureScene();
-
-        // Set portal to be rendered for next recursion.
-        if (i == recursionAmount) PortalView->SetVisibility(true);
-    }
-
-    //DrawDebugBox(GetWorld(), PortalView->GetComponentLocation(), PortalView->Bounds.BoxExtent, FColor::Green);
-
-    //SetRTT(PortalTexture);
-    //targetCapture->TextureTarget = PortalTexture;
-    //targetCapture->bUseCustomProjectionMatrix = true;
-    //targetCapture->CustomProjectionMatrix = Cast<UPortalPlayer>(GetWorld()->GetFirstPlayerController()->GetLocalPlayer())->GetCameraProjectionMatrix();
-    //targetCapture->CaptureScene();
+    targetCapture->CaptureScene();
 }
 
 FVector APortal::ConvertLocationToActorSpace(const FVector& actorLocation, const FTransform& source, const FTransform& target)
