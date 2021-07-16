@@ -76,8 +76,8 @@ private:
 
 	void GeneratePortalTexture();
 
-	FVector ConvertLocationToActorSpace(const FTransform& actor, const FTransform& source, const FTransform& target);
-	FQuat ConvertRotationToActorSpace(const FTransform& actor, const FTransform& source, const FTransform& target);
+	FVector ConvertLocationToActorSpace(const FVector& actorLocation, const FTransform& source, const FTransform& target);
+	FQuat ConvertRotationToActorSpace(const FRotator& actorRotation, const FTransform& source, const FTransform& target);
 	FVector ConvertDirectionToTarget(FVector direction);
 
 };

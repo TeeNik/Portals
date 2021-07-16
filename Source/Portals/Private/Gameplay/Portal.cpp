@@ -98,8 +98,8 @@ void APortal::Tick(float DeltaTime)
                     if(IsValid(portable->Copy))
                     {
                         UE_LOG(LogTemp, Log, TEXT("Update copy location"));
-                        portable->Copy->SetActorLocation(ConvertLocationToActorSpace(actor->GetTransform(), GetTransform(), Target->GetTransform()));
-                        portable->Copy->SetActorRotation(ConvertRotationToActorSpace(actor->GetTransform(), GetTransform(), Target->GetTransform()));
+                        portable->Copy->SetActorLocation(ConvertLocationToActorSpace(actor->GetActorLocation(), GetTransform(), Target->GetTransform()));
+                        portable->Copy->SetActorRotation(ConvertRotationToActorSpace(actor->GetActorRotation(), GetTransform(), Target->GetTransform()));
                     }
                 }
             }
@@ -182,10 +182,10 @@ void APortal::UpdateCapture()
     FTransform TargetTransform = Target->GetActorTransform();
 
     FVector newLocation = TargetTransform.TransformPosition(SourceTransform.InverseTransformPosition(CameraTransform.GetLocation()));
-    targetCapture->SetWorldLocation(newLocation);
-
     FQuat newRotation = TargetTransform.TransformRotation(SourceTransform.InverseTransformRotation(CameraTransform.GetRotation()));
-    targetCapture->SetWorldRotation(newRotation);
+    
+	targetCapture->SetWorldLocation(newLocation);
+	targetCapture->SetWorldRotation(newRotation);
 
     UE_LOG(LogTemp, Log, TEXT("Name: %s"), *GetName());
     //UE_LOG(LogTemp, Log, TEXT("Player: %s"), *CameraTransform.GetLocation().ToString());
@@ -206,23 +206,50 @@ void APortal::UpdateCapture()
         }
         targetCapture->ClipPlaneBase = Target->GetActorLocation() + targetCapture->ClipPlaneNormal * ClipPlaneOffset;
     }
-    //DrawDebugBox(GetWorld(), PortalView->GetComponentLocation(), PortalView->Bounds.BoxExtent, FColor::Green);
 
     SetRTT(PortalTexture);
     targetCapture->TextureTarget = PortalTexture;
     targetCapture->bUseCustomProjectionMatrix = true;
     targetCapture->CustomProjectionMatrix = Cast<UPortalPlayer>(GetWorld()->GetFirstPlayerController()->GetLocalPlayer())->GetCameraProjectionMatrix();
-    targetCapture->CaptureScene();
+
+    int recursionAmount = 1;
+    for (int i = recursionAmount; i >= 0; i--)
+    {
+        // Update location of the scene capture.
+        FVector recursiveCamLoc = newLocation;
+        FRotator recursiveCamRot = newRotation.Rotator();
+        for (int p = 0; p < i; p++)
+        {
+            recursiveCamLoc = ConvertLocationToActorSpace(recursiveCamLoc, SourceTransform, TargetTransform);
+            recursiveCamRot = ConvertRotationToActorSpace(recursiveCamRot, SourceTransform, TargetTransform).Rotator();
+        }
+        targetCapture->SetWorldLocationAndRotation(recursiveCamLoc, recursiveCamRot);
+
+        if (i == recursionAmount) PortalView->SetVisibility(false);
+
+        targetCapture->CaptureScene();
+
+        // Set portal to be rendered for next recursion.
+        if (i == recursionAmount) PortalView->SetVisibility(true);
+    }
+
+    //DrawDebugBox(GetWorld(), PortalView->GetComponentLocation(), PortalView->Bounds.BoxExtent, FColor::Green);
+
+    //SetRTT(PortalTexture);
+    //targetCapture->TextureTarget = PortalTexture;
+    //targetCapture->bUseCustomProjectionMatrix = true;
+    //targetCapture->CustomProjectionMatrix = Cast<UPortalPlayer>(GetWorld()->GetFirstPlayerController()->GetLocalPlayer())->GetCameraProjectionMatrix();
+    //targetCapture->CaptureScene();
 }
 
-FVector APortal::ConvertLocationToActorSpace(const FTransform& actor, const FTransform& source, const FTransform& target)
+FVector APortal::ConvertLocationToActorSpace(const FVector& actorLocation, const FTransform& source, const FTransform& target)
 {
-    return target.TransformPosition(source.InverseTransformPosition(actor.GetLocation()));
+    return target.TransformPosition(source.InverseTransformPosition(actorLocation));
 }
 
-FQuat APortal::ConvertRotationToActorSpace(const FTransform& actor, const FTransform& source, const FTransform& target)
+FQuat APortal::ConvertRotationToActorSpace(const FRotator& actorRotation, const FTransform& source, const FTransform& target)
 {
-    return target.TransformRotation(source.InverseTransformRotation(actor.GetRotation()));
+    return target.TransformRotation(source.InverseTransformRotation(actorRotation.Quaternion()));
 }
 
 FVector APortal::ConvertDirectionToTarget(FVector direction)
@@ -295,9 +322,9 @@ void APortal::TeleportActor(AActor* ActorToTeleport)
     prim->SetPhysicsAngularVelocityInDegrees(newAngularVelocity);
 
     FHitResult HitResult;
-    FVector NewLocation = ConvertLocationToActorSpace(ActorToTeleport->GetTransform(), GetTransform(), Target->GetTransform());
+    FVector NewLocation = ConvertLocationToActorSpace(ActorToTeleport->GetActorLocation(), GetTransform(), Target->GetTransform());
     ActorToTeleport->SetActorLocation(NewLocation, false, &HitResult, ETeleportType::TeleportPhysics);
-    FQuat NewRotation = ConvertRotationToActorSpace(ActorToTeleport->GetTransform(), GetTransform(), Target->GetTransform());
+    FQuat NewRotation = ConvertRotationToActorSpace(ActorToTeleport->GetActorRotation(), GetTransform(), Target->GetTransform());
     ActorToTeleport->SetActorRotation(NewRotation);
 
     UE_LOG(LogTemp, Log, TEXT("Teleport to : %s"), *NewLocation.ToString());
