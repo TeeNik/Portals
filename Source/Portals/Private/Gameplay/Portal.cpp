@@ -198,7 +198,7 @@ void APortal::UpdateCapture()
     targetCapture->CustomProjectionMatrix = Cast<UPortalPlayer>(GetWorld()->GetFirstPlayerController()->GetLocalPlayer())->GetCameraProjectionMatrix();
 
     
-    int recursionAmount = 1;
+    int recursionAmount = 2;
     for (int i = recursionAmount; i >= 0; i--)
     {
         // Update location of the scene capture.
