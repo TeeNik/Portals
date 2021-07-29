@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #include "PortalsCharacter.h"
 #include "PortalsProjectile.h"
 #include "Animation/AnimInstance.h"
@@ -9,11 +7,9 @@
 #include "GameFramework/InputSettings.h"
 #include "Kismet/GameplayStatics.h"
 #include "MotionControllerComponent.h"
+#include "Gameplay/TelekinesisActor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
-
-//////////////////////////////////////////////////////////////////////////
-// APortalsCharacter
 
 APortalsCharacter::APortalsCharacter()
 {
@@ -64,6 +60,24 @@ void APortalsCharacter::BeginPlay()
 	FP_Gun->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
 
 	Mesh1P->SetHiddenInGame(false, true);
+}
+
+void APortalsCharacter::Tick(float DeltaSeconds)
+{
+	FHitResult hit;
+	FVector start = FirstPersonCameraComponent->GetComponentLocation();
+	FVector end = start + FirstPersonCameraComponent->GetForwardVector() * 10000;
+	const bool result = GetWorld()->LineTraceSingleByChannel(hit, start, end, ECC_Visibility);
+	if (result)
+	{
+		ATelekinesisActor* target = Cast<ATelekinesisActor>(hit.Actor);
+		if (target)
+		{
+
+		}
+	}
+
+	Super::Tick(DeltaSeconds);
 }
 
 //////////////////////////////////////////////////////////////////////////
