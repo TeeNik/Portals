@@ -49,6 +49,9 @@ APortalsCharacter::APortalsCharacter()
 
 	// Default offset from the character location for projectiles to spawn
 	GunOffset = FVector(100.0f, 0.0f, 10.0f);
+
+	TelekinesisSocket = CreateDefaultSubobject<USceneComponent>(TEXT("TelekinesisSocket"));
+	TelekinesisSocket->SetupAttachment(FirstPersonCameraComponent);
 }
 
 void APortalsCharacter::BeginPlay()
@@ -64,44 +67,54 @@ void APortalsCharacter::BeginPlay()
 
 void APortalsCharacter::Tick(float DeltaSeconds)
 {
-	FHitResult hit;
-	FVector start = FirstPersonCameraComponent->GetComponentLocation();
-	FVector end = start + FirstPersonCameraComponent->GetForwardVector() * 10000;
-	const bool result = GetWorld()->LineTraceSingleByChannel(hit, start, end, ECC_Visibility);
-	if (result)
+	if (IsTargetCaptured)
 	{
-		ATelekinesisActor* target = Cast<ATelekinesisActor>(hit.Actor);
-		if (target)
+		TelekinesisTarget->ReachTarget(TelekinesisSocket->GetComponentLocation());
+	}
+	else
+	{
+		FHitResult hit;
+		FVector start = FirstPersonCameraComponent->GetComponentLocation();
+		FVector end = start + FirstPersonCameraComponent->GetForwardVector() * 10000;
+		const bool result = GetWorld()->LineTraceSingleByChannel(hit, start, end, ECC_Visibility);
+		if (result)
 		{
-
+			ATelekinesisActor* target = Cast<ATelekinesisActor>(hit.Actor);
+			if (TelekinesisTarget)
+			{
+				TelekinesisTarget->SetHighlight(false);
+			}
+			if (target)
+			{
+				TelekinesisTarget = target;
+				TelekinesisTarget->SetHighlight(true);
+			}
+		}
+		else
+		{
+			if (IsValid(TelekinesisTarget))
+			{
+				TelekinesisTarget->SetHighlight(false);
+				TelekinesisTarget = nullptr;
+			}
 		}
 	}
 
 	Super::Tick(DeltaSeconds);
 }
 
-//////////////////////////////////////////////////////////////////////////
-// Input
-
 void APortalsCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
-	// set up gameplay key bindings
 	check(PlayerInputComponent);
 
-	// Bind jump events
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-	// Bind fire event
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &APortalsCharacter::OnFire);
 
-	// Bind movement events
 	PlayerInputComponent->BindAxis("MoveForward", this, &APortalsCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &APortalsCharacter::MoveRight);
 
-	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
-	// "turn" handles devices that provide an absolute delta, such as a mouse.
-	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
 	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
 	PlayerInputComponent->BindAxis("TurnRate", this, &APortalsCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
@@ -110,41 +123,24 @@ void APortalsCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 
 void APortalsCharacter::OnFire()
 {
-	// try and fire a projectile
-	if (ProjectileClass != nullptr)
+	if (TelekinesisTarget)
 	{
-		UWorld* const World = GetWorld();
-		if (World != nullptr)
+		if (IsTargetCaptured)
 		{
-			const FRotator SpawnRotation = GetControlRotation();
-			// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
-			const FVector SpawnLocation = ((FP_MuzzleLocation != nullptr) ? FP_MuzzleLocation->GetComponentLocation() : GetActorLocation()) + SpawnRotation.RotateVector(GunOffset);
-
-			//Set Spawn Collision Handling Override
-			FActorSpawnParameters ActorSpawnParams;
-			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-
-			// spawn the projectile at the muzzle
-			World->SpawnActor<APortalsProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
-
+			TelekinesisTarget->Push(GetFirstPersonCameraComponent()->GetForwardVector());
+			TelekinesisTarget = nullptr;
+			IsTargetCaptured = false;
+		}
+		else
+		{
+			IsTargetCaptured = true;
+			TelekinesisTarget->OnCapture();
 		}
 	}
 
-	// try and play the sound if specified
 	if (FireSound != nullptr)
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
-	}
-
-	// try and play a firing animation if specified
-	if (FireAnimation != nullptr)
-	{
-		// Get the animation object for the arms mesh
-		UAnimInstance* AnimInstance = Mesh1P->GetAnimInstance();
-		if (AnimInstance != nullptr)
-		{
-			AnimInstance->Montage_Play(FireAnimation, 1.f);
-		}
 	}
 }
 

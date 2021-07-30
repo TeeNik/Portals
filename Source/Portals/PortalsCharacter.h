@@ -11,6 +11,7 @@ class UCameraComponent;
 class UMotionControllerComponent;
 class UAnimMontage;
 class USoundBase;
+class ATelekinesisActor;
 
 UCLASS(config=Game)
 class APortalsCharacter : public ACharacter
@@ -55,5 +56,13 @@ protected:
 	USceneComponent* FP_MuzzleLocation;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FirstPersonCameraComponent;
+	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+	USceneComponent* TelekinesisSocket;
+
+private:
+	UPROPERTY(Transient)
+	ATelekinesisActor* TelekinesisTarget;
+
+	bool IsTargetCaptured;
 
 };
