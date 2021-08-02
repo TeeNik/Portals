@@ -21,7 +21,6 @@ class APortalsCharacter : public ACharacter
 public:
 	APortalsCharacter();
 
-	USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
@@ -29,16 +28,11 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	float BaseLookUpRate;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-	FVector GunOffset;
-	UPROPERTY(EditDefaultsOnly, Category = Projectile)
-	TSubclassOf<class APortalsProjectile> ProjectileClass;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 	USoundBase* FireSound;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 	UAnimMontage* FireAnimation;
 
 protected:
-	virtual void BeginPlay();
 	virtual void Tick(float DeltaSeconds) override;
 
 	void OnFire();
@@ -48,12 +42,6 @@ protected:
 	void LookUpAtRate(float Rate);
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
 	
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-	USkeletalMeshComponent* Mesh1P;
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-	USkeletalMeshComponent* FP_Gun;
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-	USceneComponent* FP_MuzzleLocation;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FirstPersonCameraComponent;
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
