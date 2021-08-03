@@ -39,14 +39,14 @@ void ATelekinesisActor::ReachTarget(FVector target)
 	Mesh->SetEnableGravity(false);
 
 	float massClamped = UKismetMathLibrary::MapRangeClamped(Mesh->GetMass(), 50.0f, 700.0f, 5.0f, 1.0f);
-	FVector distClamped = UKismetMathLibrary::ClampVectorSize(target - GetActorLocation(), 0.0f, 1000.0f);
+	FVector distClamped = UKismetMathLibrary::ClampVectorSize(target - GetActorLocation(), 0.0f, ReachMaxSpeed);
 	FVector impulse = distClamped * massClamped;
 	Mesh->AddImpulse(impulse, NAME_None, true);
 }
 
 void ATelekinesisActor::Push(FVector direction)
 {
-	Mesh->AddImpulse(direction * 10000 , NAME_None, true);
+	Mesh->AddImpulse(direction * PushForce, NAME_None, true);
 
 	Mesh->SetEnableGravity(true);
 	Mesh->SetAngularDamping(0.2f);

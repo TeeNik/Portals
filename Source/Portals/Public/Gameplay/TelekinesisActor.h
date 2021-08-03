@@ -4,9 +4,6 @@
 #include "GameFramework/Actor.h"
 #include "TelekinesisActor.generated.h"
 
-//UENUM()
-//enum ETelekinesisState
-
 class UStaticMeshComponent;
 
 UCLASS()
@@ -28,5 +25,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UStaticMeshComponent* Mesh;
+
+	UPROPERTY(EditDefaultsOnly)
+	float ReachMaxSpeed = 1000.0f;
+	UPROPERTY(EditDefaultsOnly)
+	float PushForce = 1000.0f;
 
 };
