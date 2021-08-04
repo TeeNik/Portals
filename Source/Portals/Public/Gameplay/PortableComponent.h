@@ -5,6 +5,7 @@
 #include "PortableComponent.generated.h"
 
 class APortal;
+class UStaticMeshComponent;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PORTALS_API UPortableComponent : public UActorComponent
@@ -19,14 +20,23 @@ public:
 	virtual void Teleport(const FVector& newLocation, const FQuat& newRotation);
 
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<AActor> CopyClass;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Transient)
+	bool ShouldCreateCopy = true;
+	UPROPERTY(BlueprintReadWrite, Transient)
 	AActor* Copy = nullptr;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient)
+	UPROPERTY(BlueprintReadWrite, Transient)
 	APortal* Portal = nullptr;
+	UPROPERTY(BlueprintReadOnly)
+	bool IsCopy = false;
 	
 	FVector LastPosition;
 	bool LastInFront;
 
+protected:
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+private:
+	UPROPERTY(Transient)
+	UStaticMeshComponent* CachedMesh = nullptr;
+
+	UStaticMeshComponent* GetOwnerMesh();
 };
