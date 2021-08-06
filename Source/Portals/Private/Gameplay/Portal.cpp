@@ -80,12 +80,17 @@ void APortal::Tick(float DeltaTime)
                 if (IsPointCrossingPortal(portable))
                 {
                     TickInProgress = true;
-                    //Cast<UPortalPlayer>(GetWorld()->GetFirstPlayerController()->GetLocalPlayer())->CameraCut();
-
                     OnTeleportUsed(false);
                     Target->OnTeleportUsed(true);
-                	
+
+                    FVector prevPos = actor->GetActorLocation();
+                    FRotator prevRot = actor->GetActorRotation();
+
                 	TeleportActor(actor);
+                    if(portable->Copy)
+                    {
+                        portable->Copy->SetActorLocationAndRotation(prevPos, prevRot);
+                    }
 
                     //portable->OnExitPortalThreshold();
                     Target->UpdateCapture();
@@ -97,7 +102,6 @@ void APortal::Tick(float DeltaTime)
                 {
                     if(IsValid(portable->Copy))
                     {
-                        UE_LOG(LogTemp, Log, TEXT("Update copy location"));
                         portable->Copy->SetActorLocation(ConvertLocationToActorSpace(actor->GetActorLocation(), GetTransform(), Target->GetTransform()));
                         portable->Copy->SetActorRotation(ConvertRotationToActorSpace(actor->GetActorRotation(), GetTransform(), Target->GetTransform()));
                     }
@@ -116,7 +120,7 @@ void APortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherA
     if(component)
     {
         UPortableComponent* portable = Cast<UPortableComponent>(component);
-        if (!PortableTargets.Contains(portable))
+        if (!PortableTargets.Contains(portable) && !portable->IsCopy)
         {
             UE_LOG(LogTemp, Log, TEXT("OnOverlapBegin"));
             FVector point = OtherActor->GetActorLocation();
@@ -135,7 +139,7 @@ void APortal::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherAct
     if (component)
     {
         UPortableComponent* portable = Cast<UPortableComponent>(component);
-	    if(PortableTargets.Contains(portable) && !TickInProgress)
+	    if(PortableTargets.Contains(portable) && !portable->IsCopy && !TickInProgress)
 	    {
             UE_LOG(LogTemp, Log, TEXT("OnOverlapEnd"));
             portable->OnExitPortalThreshold();
@@ -319,15 +323,6 @@ void APortal::TeleportActor(AActor* ActorToTeleport)
         return;
     }
 
-    FVector savedVelocity = FVector::ZeroVector;
-    ACharacter* character = nullptr;
-
-    if (ActorToTeleport->IsA(ACharacter::StaticClass()))
-    {
-        character = Cast<ACharacter>(ActorToTeleport);
-        savedVelocity = character->GetCharacterMovement()->Velocity;
-    }
-
     UPrimitiveComponent* prim = Cast<UPrimitiveComponent>(ActorToTeleport->GetRootComponent());
     FVector newLinearVelocity = ConvertDirectionToTarget(prim->GetPhysicsLinearVelocity());
     FVector newAngularVelocity = ConvertDirectionToTarget(prim->GetPhysicsAngularVelocityInDegrees());
@@ -351,19 +346,19 @@ void APortal::TeleportActor(AActor* ActorToTeleport)
             pc->SetControlRotation(NewRotation.Rotator());
         }
 
+        ACharacter* character = Cast<ACharacter>(ActorToTeleport);
+        FVector savedVelocity = character->GetCharacterMovement()->Velocity;
 
-        {
-            FVector Dots;
-            Dots.X = FVector::DotProduct(savedVelocity, GetActorForwardVector());
-            Dots.Y = FVector::DotProduct(savedVelocity, GetActorRightVector());
-            Dots.Z = FVector::DotProduct(savedVelocity, GetActorUpVector());
-
-            FVector NewVelocity = Dots.X * Target->GetActorForwardVector()
-                + Dots.Y * Target->GetActorRightVector()
-                + Dots.Z * Target->GetActorUpVector();
-
-            character->GetCharacterMovement()->Velocity = NewVelocity;
-        }
+        FVector Dots;
+        Dots.X = FVector::DotProduct(savedVelocity, GetActorForwardVector());
+        Dots.Y = FVector::DotProduct(savedVelocity, GetActorRightVector());
+        Dots.Z = FVector::DotProduct(savedVelocity, GetActorUpVector());
+        
+        FVector NewVelocity = Dots.X * Target->GetActorForwardVector()
+            + Dots.Y * Target->GetActorRightVector()
+            + Dots.Z * Target->GetActorUpVector();
+        
+        character->GetCharacterMovement()->Velocity = NewVelocity;
     }
 
     UPortableComponent* portable = Cast<UPortableComponent>(ActorToTeleport->GetComponentByClass(UPortableComponent::StaticClass()));
