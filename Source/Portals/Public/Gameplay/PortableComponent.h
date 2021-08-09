@@ -19,6 +19,8 @@ public:
 	virtual void OnExitPortalThreshold();
 	virtual void Teleport(const FVector& newLocation, const FQuat& newRotation);
 
+	void UpdateSliceMaterial();
+
 	UPROPERTY(EditDefaultsOnly)
 	bool ShouldCreateCopy = true;
 	UPROPERTY(BlueprintReadWrite, Transient)

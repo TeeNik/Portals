@@ -1,9 +1,11 @@
 #include "Gameplay/PortableComponent.h"
 #include "Gameplay/Portal.h"
+#include "Chaos/Collision/NarrowPhase.h"
 
 UPortableComponent::UPortableComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.TickGroup = ETickingGroup::TG_PostUpdateWork;
 }
 
 void UPortableComponent::OnEnterPortalThreshold(APortal* portal)
@@ -17,6 +19,7 @@ void UPortableComponent::OnEnterPortalThreshold(APortal* portal)
 		else
 		{
 			Copy = GetWorld()->SpawnActor<AActor>(GetOwner()->GetClass());
+			Copy->SetActorLabel(Copy->GetActorLabel() + TEXT("_Copy"));
 			UPortableComponent* portable = Cast<UPortableComponent>(Copy->GetComponentByClass(UPortableComponent::StaticClass()));
 			portable->IsCopy = true;
 			portable->GetOwnerMesh()->SetEnableGravity(false);
@@ -43,10 +46,9 @@ void UPortableComponent::Teleport(const FVector& newLocation, const FQuat& newRo
 	LastPosition = newLocation;
 }
 
-void UPortableComponent::TickComponent(float DeltaTime, ELevelTick TickType,
-	FActorComponentTickFunction* ThisTickFunction)
+void UPortableComponent::UpdateSliceMaterial()
 {
-	if(!IsCopy)
+	if (!IsCopy)
 	{
 		UStaticMeshComponent* mesh = GetOwnerMesh();
 		const bool isPortalValid = IsValid(Portal);
@@ -54,7 +56,7 @@ void UPortableComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 		if (isPortalValid)
 		{
-			mesh->SetVectorParameterValueOnMaterials(TEXT("Pos"),Portal->GetActorLocation());
+			mesh->SetVectorParameterValueOnMaterials(TEXT("Pos"), Portal->GetActorLocation());
 			FVector normal = Portal->GetActorForwardVector();
 			if (Portal->IsPointInFrontOfPortal(mesh->GetComponentLocation()))
 			{
@@ -67,17 +69,29 @@ void UPortableComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 				UPortableComponent* copyPortable = Cast<UPortableComponent>(Copy->GetComponentByClass(UPortableComponent::StaticClass()));
 				UStaticMeshComponent* copyMesh = copyPortable->GetOwnerMesh();
 				copyMesh->SetScalarParameterValueOnMaterials(TEXT("UseMask"), 1.0f);
-				copyMesh->SetVectorParameterValueOnMaterials(TEXT("Pos"), Portal->Target->GetActorLocation());
 				FVector copyNormal = Portal->Target->GetActorForwardVector();
 				if (!Portal->Target->IsPointInFrontOfPortal(mesh->GetComponentLocation()))
 				{
 					copyNormal *= -1.0f;
 				}
 				copyMesh->SetVectorParameterValueOnMaterials(TEXT("Normal"), copyNormal);
+				copyMesh->SetVectorParameterValueOnMaterials(TEXT("Pos"), Portal->Target->GetActorLocation() + copyNormal * (5.0f));
 			}
+		}
 
+		if (IsValid(Copy) && Portal)
+		{
+			AActor* owner = GetOwner();
+			Copy->SetActorLocation(Portal->ConvertLocationToActorSpace(owner->GetActorLocation(), Portal->GetTransform(), Portal->Target->GetTransform()));
+			Copy->SetActorRotation(Portal->ConvertRotationToActorSpace(owner->GetActorRotation(), Portal->GetTransform(), Portal->Target->GetTransform()));
 		}
 	}
+}
+
+void UPortableComponent::TickComponent(float DeltaTime, ELevelTick TickType,
+	FActorComponentTickFunction* ThisTickFunction)
+{
+	UpdateSliceMaterial();
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
