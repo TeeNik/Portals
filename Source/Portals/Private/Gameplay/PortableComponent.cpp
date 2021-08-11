@@ -69,13 +69,13 @@ void UPortableComponent::UpdateSliceMaterial()
 				UPortableComponent* copyPortable = Cast<UPortableComponent>(Copy->GetComponentByClass(UPortableComponent::StaticClass()));
 				UStaticMeshComponent* copyMesh = copyPortable->GetOwnerMesh();
 				copyMesh->SetScalarParameterValueOnMaterials(TEXT("UseMask"), 1.0f);
+				copyMesh->SetVectorParameterValueOnMaterials(TEXT("Pos"), Portal->Target->GetActorLocation());
 				FVector copyNormal = Portal->Target->GetActorForwardVector();
 				if (!Portal->Target->IsPointInFrontOfPortal(mesh->GetComponentLocation()))
 				{
 					copyNormal *= -1.0f;
 				}
 				copyMesh->SetVectorParameterValueOnMaterials(TEXT("Normal"), copyNormal);
-				copyMesh->SetVectorParameterValueOnMaterials(TEXT("Pos"), Portal->Target->GetActorLocation() + copyNormal * (5.0f));
 			}
 		}
 
