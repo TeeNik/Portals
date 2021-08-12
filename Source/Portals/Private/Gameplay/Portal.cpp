@@ -91,26 +91,44 @@ void APortal::Tick(float DeltaTime)
                     {
                         portable->Copy->SetActorLocationAndRotation(prevPos, prevRot);
                     }
-
                     //portable->OnExitPortalThreshold();
                     Target->UpdateCapture();
                     PortableTargets.RemoveAt(i);
                     --i;
+
+                    Target->AddPortableTarget(portable);
+                    portable->UpdateSliceMaterial();
+
                     TickInProgress = false;
                 } 
             	else
                 {
+                    /*
                     if(IsValid(portable->Copy))
                     {
                         portable->Copy->SetActorLocation(ConvertLocationToActorSpace(actor->GetActorLocation(), GetTransform(), Target->GetTransform()));
                         portable->Copy->SetActorRotation(ConvertRotationToActorSpace(actor->GetActorRotation(), GetTransform(), Target->GetTransform()));
                     }
+                    */
                 }
             }
         }
     }
 
     Super::Tick(DeltaTime);
+}
+
+void APortal::AddPortableTarget(UPortableComponent* portable)
+{
+    if (!PortableTargets.Contains(portable) && !portable->IsCopy)
+    {
+        UE_LOG(LogTemp, Log, TEXT("OnOverlapBegin"));
+        FVector point = portable->GetOwner()->GetActorLocation();
+        portable->LastInFront = IsPointInFrontOfPortal(point);
+        portable->LastPosition = point;
+        portable->OnEnterPortalThreshold(this);
+        PortableTargets.Add(portable);
+    }
 }
 
 void APortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
@@ -120,15 +138,7 @@ void APortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherA
     if(component)
     {
         UPortableComponent* portable = Cast<UPortableComponent>(component);
-        if (!PortableTargets.Contains(portable) && !portable->IsCopy)
-        {
-            UE_LOG(LogTemp, Log, TEXT("OnOverlapBegin"));
-            FVector point = OtherActor->GetActorLocation();
-            portable->LastInFront = IsPointInFrontOfPortal(point);
-            portable->LastPosition = point;
-            portable->OnEnterPortalThreshold(this);
-            PortableTargets.Add(portable);
-        }
+        AddPortableTarget(portable);
     }
 }
 

@@ -50,7 +50,7 @@ public:
 	void OnTeleportUsed(bool isTarget);
 
 	void UpdateCapture();
-	void UpdateWorldOffset();
+	void AddPortableTarget(UPortableComponent* portable);
 
 protected:
 	virtual void BeginPlay() override;
@@ -76,6 +76,7 @@ private:
 
 	void GeneratePortalTexture();
 
+public:
 	FVector ConvertLocationToActorSpace(const FVector& actorLocation, const FTransform& source, const FTransform& target);
 	FQuat ConvertRotationToActorSpace(const FRotator& actorRotation, const FTransform& source, const FTransform& target);
 	FVector ConvertDirectionToTarget(FVector direction);
