@@ -33,6 +33,8 @@ public:
 	APortal* Target;
 	UPROPERTY(EditAnywhere)
 	float ClipPlaneOffset = -1.5f;
+	UPROPERTY(EditAnywhere)
+	int32 RecursionAmount = 2;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Portal")
 	bool IsPointInFrontOfPortal(FVector Point) const;
@@ -51,6 +53,9 @@ public:
 
 	void UpdateCapture();
 	void AddPortableTarget(UPortableComponent* portable);
+	FVector ConvertLocationToActorSpace(const FVector& actorLocation, const FTransform& source, const FTransform& target);
+	FQuat ConvertRotationToActorSpace(const FRotator& actorRotation, const FTransform& source, const FTransform& target);
+	FVector ConvertDirectionToTarget(FVector direction);
 
 protected:
 	virtual void BeginPlay() override;
@@ -75,10 +80,5 @@ private:
 	bool TickInProgress = false;
 
 	void GeneratePortalTexture();
-
-public:
-	FVector ConvertLocationToActorSpace(const FVector& actorLocation, const FTransform& source, const FTransform& target);
-	FQuat ConvertRotationToActorSpace(const FRotator& actorRotation, const FTransform& source, const FTransform& target);
-	FVector ConvertDirectionToTarget(FVector direction);
 
 };

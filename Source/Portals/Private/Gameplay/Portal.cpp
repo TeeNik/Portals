@@ -91,7 +91,7 @@ void APortal::Tick(float DeltaTime)
                     {
                         portable->Copy->SetActorLocationAndRotation(prevPos, prevRot);
                     }
-                    //portable->OnExitPortalThreshold();
+
                     Target->UpdateCapture();
                     PortableTargets.RemoveAt(i);
                     --i;
@@ -101,16 +101,6 @@ void APortal::Tick(float DeltaTime)
 
                     TickInProgress = false;
                 } 
-            	else
-                {
-                    /*
-                    if(IsValid(portable->Copy))
-                    {
-                        portable->Copy->SetActorLocation(ConvertLocationToActorSpace(actor->GetActorLocation(), GetTransform(), Target->GetTransform()));
-                        portable->Copy->SetActorRotation(ConvertRotationToActorSpace(actor->GetActorRotation(), GetTransform(), Target->GetTransform()));
-                    }
-                    */
-                }
             }
         }
     }
@@ -122,7 +112,6 @@ void APortal::AddPortableTarget(UPortableComponent* portable)
 {
     if (!PortableTargets.Contains(portable) && !portable->IsCopy)
     {
-        UE_LOG(LogTemp, Log, TEXT("OnOverlapBegin"));
         FVector point = portable->GetOwner()->GetActorLocation();
         portable->LastInFront = IsPointInFrontOfPortal(point);
         portable->LastPosition = point;
@@ -131,8 +120,7 @@ void APortal::AddPortableTarget(UPortableComponent* portable)
     }
 }
 
-void APortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
-	int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void APortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
     UActorComponent* component = OtherActor->GetComponentByClass(UPortableComponent::StaticClass());
     if(component)
@@ -142,8 +130,7 @@ void APortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherA
     }
 }
 
-void APortal::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
-	int32 OtherBodyIndex)
+void APortal::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,	int32 OtherBodyIndex)
 {
     UActorComponent* component = OtherActor->GetComponentByClass(UPortableComponent::StaticClass());
     if (component)
@@ -151,7 +138,6 @@ void APortal::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherAct
         UPortableComponent* portable = Cast<UPortableComponent>(component);
 	    if(PortableTargets.Contains(portable) && !portable->IsCopy && !TickInProgress)
 	    {
-            UE_LOG(LogTemp, Log, TEXT("OnOverlapEnd"));
             portable->OnExitPortalThreshold();
             PortableTargets.Remove(portable);
 	    }
@@ -162,10 +148,6 @@ void APortal::GeneratePortalTexture()
 {
     int32 CurrentSizeX = 1920;
     int32 CurrentSizeY = 1080;
-
-    //GetWorld()->GetFirstPlayerController()->GetViewportSize(CurrentSizeX, CurrentSizeY);
-    //CurrentSizeX = FMath::Clamp(int(CurrentSizeX / 1.7), 128, 1920); //1920 / 1.5 = 128/0
-    //CurrentSizeY = FMath::Clamp(int(CurrentSizeY / 1.7), 128, 1080);
 
     if (PortalTexture == nullptr)
     {
@@ -201,21 +183,12 @@ void APortal::UpdateCapture()
 	targetCapture->SetWorldLocation(newLocation);
 	targetCapture->SetWorldRotation(newRotation);
 
-    UE_LOG(LogTemp, Log, TEXT("Name: %s"), *GetName());
-    //UE_LOG(LogTemp, Log, TEXT("Player: %s"), *CameraTransform.GetLocation().ToString());
-    //UE_LOG(LogTemp, Log, TEXT("Source: %s"), *SourceTransform.GetLocation().ToString());
-    //UE_LOG(LogTemp, Log, TEXT("Target: %s"), *TargetTransform.GetLocation().ToString());
-    //UE_LOG(LogTemp, Log, TEXT("Capture: %s"), *newLocation.ToString());
-
     SetRTT(PortalTexture);
     targetCapture->TextureTarget = PortalTexture;
     targetCapture->CustomProjectionMatrix = Cast<UPortalPlayer>(GetWorld()->GetFirstPlayerController()->GetLocalPlayer())->GetCameraProjectionMatrix();
-
     
-    int recursionAmount = 2;
-    for (int i = recursionAmount; i >= 0; i--)
+    for (int i = RecursionAmount; i >= 0; i--)
     {
-        // Update location of the scene capture.
         FVector recursiveCamLoc = newLocation;
         FRotator recursiveCamRot = newRotation.Rotator();
         for (int p = 0; p < i; p++)
@@ -225,7 +198,10 @@ void APortal::UpdateCapture()
         }
         targetCapture->SetWorldLocationAndRotation(recursiveCamLoc, recursiveCamRot);
 
-        if (i == recursionAmount) PortalView->SetVisibility(false);
+        if (i == RecursionAmount)
+        {
+            PortalView->SetVisibility(false);
+        }
 
         bool isInsidePortal = UKismetMathLibrary::IsPointInBox(CameraTransform.GetLocation(), InteractionBox->GetComponentLocation(), InteractionBox->Bounds.BoxExtent * 2);
         targetCapture->bEnableClipPlane = !isInsidePortal;
@@ -243,30 +219,11 @@ void APortal::UpdateCapture()
 
         targetCapture->CaptureScene();
 
-        // Set portal to be rendered for next recursion.
-        if (i == recursionAmount) PortalView->SetVisibility(true);
-    }
-
-    /*
-    bool isInsidePortal = UKismetMathLibrary::IsPointInBox(CameraTransform.GetLocation(), InteractionBox->GetComponentLocation(), InteractionBox->Bounds.BoxExtent * 2);
-    targetCapture->bEnableClipPlane = !isInsidePortal;
-    if (!isInsidePortal)
-    {
-        targetCapture->ClipPlaneNormal = Target->GetActorForwardVector();
-        const bool IsPlayerInFront = Target->IsPointInFrontOfPortal(targetCapture->GetComponentLocation());
-        if (IsPlayerInFront)
+        if (i == RecursionAmount)
         {
-            targetCapture->ClipPlaneNormal *= -1.0;
+            PortalView->SetVisibility(true);
         }
-        targetCapture->ClipPlaneBase = Target->GetActorLocation() + targetCapture->ClipPlaneNormal * ClipPlaneOffset;
     }
-
-    SetRTT(PortalTexture);
-    targetCapture->TextureTarget = PortalTexture;
-    targetCapture->bUseCustomProjectionMatrix = true;
-    targetCapture->CustomProjectionMatrix = Cast<UPortalPlayer>(GetWorld()->GetFirstPlayerController()->GetLocalPlayer())->GetCameraProjectionMatrix();
-    targetCapture->CaptureScene();
-    */
 }
 
 FVector APortal::ConvertLocationToActorSpace(const FVector& actorLocation, const FTransform& source, const FTransform& target)
@@ -345,7 +302,6 @@ void APortal::TeleportActor(AActor* ActorToTeleport)
     FQuat NewRotation = ConvertRotationToActorSpace(ActorToTeleport->GetActorRotation(), GetTransform(), Target->GetTransform());
     ActorToTeleport->SetActorRotation(NewRotation);
 
-    UE_LOG(LogTemp, Log, TEXT("Teleport to : %s"), *NewLocation.ToString());
 
     if (ActorToTeleport->IsA(ACharacter::StaticClass()))
     {
