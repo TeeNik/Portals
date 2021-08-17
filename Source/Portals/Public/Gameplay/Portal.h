@@ -29,7 +29,7 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = "Portal")
 	void ForceTick();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	APortal* Target;
 	UPROPERTY(EditAnywhere)
 	float ClipPlaneOffset = -1.5f;
