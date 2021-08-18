@@ -8,6 +8,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "MotionControllerComponent.h"
 #include "Gameplay/TelekinesisActor.h"
+#include "Gameplay/Portal.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 
@@ -28,10 +29,21 @@ APortalsCharacter::APortalsCharacter()
 
 	TelekinesisSocket = CreateDefaultSubobject<USceneComponent>(TEXT("TelekinesisSocket"));
 	TelekinesisSocket->SetupAttachment(FirstPersonCameraComponent);
+
+	PrimaryActorTick.TickGroup = ETickingGroup::TG_PostPhysics;
 }
 
 void APortalsCharacter::Tick(float DeltaSeconds)
 {
+
+	TArray<AActor*> portals;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APortal::StaticClass(), portals);
+	for (AActor* actor : portals)
+	{
+		APortal* portal = Cast<APortal>(actor);
+		portal->Tick(DeltaSeconds);
+	}
+
 	if (IsTargetCaptured)
 	{
 		TelekinesisTarget->ReachTarget(TelekinesisSocket->GetComponentLocation());

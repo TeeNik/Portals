@@ -12,8 +12,8 @@
 
 APortal::APortal()
 {
-	PrimaryActorTick.bCanEverTick = true;
-    PrimaryActorTick.TickGroup = ETickingGroup::TG_PostUpdateWork;
+	//PrimaryActorTick.bCanEverTick = true;
+    //PrimaryActorTick.TickGroup = ETickingGroup::TG_PostUpdateWork;
 	IsActive = false;
 
     PortalRootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
@@ -91,6 +91,8 @@ void APortal::Tick(float DeltaTime)
                     {
                         portable->Copy->SetActorLocationAndRotation(prevPos, prevRot);
                     }
+
+                    UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->SetGameCameraCutThisFrame();
 
                     Target->UpdateCapture();
                     PortableTargets.RemoveAt(i);
