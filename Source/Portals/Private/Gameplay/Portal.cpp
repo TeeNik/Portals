@@ -12,8 +12,8 @@
 
 APortal::APortal()
 {
-	//PrimaryActorTick.bCanEverTick = true;
-    //PrimaryActorTick.TickGroup = ETickingGroup::TG_PostUpdateWork;
+	PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.TickGroup = ETickingGroup::TG_PostUpdateWork;
 	IsActive = false;
 
     PortalRootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));

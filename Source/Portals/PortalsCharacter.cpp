@@ -17,10 +17,6 @@ APortalsCharacter::APortalsCharacter()
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(55.f, 96.0f);
 
-	// set our turn rates for input
-	BaseTurnRate = 45.f;
-	BaseLookUpRate = 45.f;
-
 	// Create a CameraComponent	
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
@@ -92,9 +88,9 @@ void APortalsCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAxis("MoveForward", this, &APortalsCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &APortalsCharacter::MoveRight);
 
-	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("Turn", this, &APortalsCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("TurnRate", this, &APortalsCharacter::TurnAtRate);
-	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("LookUp", this, &APortalsCharacter::LookUpAtRate);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &APortalsCharacter::LookUpAtRate);
 }
 

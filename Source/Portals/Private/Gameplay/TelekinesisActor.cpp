@@ -14,6 +14,9 @@ ATelekinesisActor::ATelekinesisActor()
 void ATelekinesisActor::BeginPlay()
 {
 	Super::BeginPlay();
+
+	InitialLinearDamping = Mesh->GetLinearDamping();
+	InitialAngularDamping = Mesh->GetAngularDamping();
 }
 
 void ATelekinesisActor::Tick(float DeltaTime)
@@ -30,8 +33,8 @@ void ATelekinesisActor::OnCapture()
 {
 	SetHighlight(false);
 	Mesh->SetEnableGravity(false);
-	Mesh->SetAngularDamping(2.0f);
-	Mesh->SetLinearDamping(15.0f);
+	Mesh->SetAngularDamping(AngularDamping);
+	Mesh->SetLinearDamping(LinearDamping);
 }
 
 void ATelekinesisActor::ReachTarget(FVector target)
@@ -49,6 +52,6 @@ void ATelekinesisActor::Push(FVector direction)
 	Mesh->AddImpulse(direction * PushForce, NAME_None, true);
 
 	Mesh->SetEnableGravity(true);
-	Mesh->SetAngularDamping(0.2f);
-	Mesh->SetLinearDamping(0.2f);
+	Mesh->SetAngularDamping(InitialAngularDamping);
+	Mesh->SetLinearDamping(InitialLinearDamping);
 }

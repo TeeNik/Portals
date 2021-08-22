@@ -30,5 +30,13 @@ protected:
 	float ReachMaxSpeed = 1000.0f;
 	UPROPERTY(EditDefaultsOnly)
 	float PushForce = 1000.0f;
+	UPROPERTY(EditDefaultsOnly)
+	float LinearDamping = 20.0f;
+	UPROPERTY(EditDefaultsOnly)
+	float AngularDamping = 2.0f;
+
+private:
+	float InitialLinearDamping = 0.0f;
+	float InitialAngularDamping = 0.0f;
 
 };

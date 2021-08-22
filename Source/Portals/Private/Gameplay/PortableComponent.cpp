@@ -19,7 +19,7 @@ void UPortableComponent::OnEnterPortalThreshold(APortal* portal)
 		else
 		{
 			Copy = GetWorld()->SpawnActor<AActor>(GetOwner()->GetClass());
-			Copy->SetActorLabel(Copy->GetActorLabel() + TEXT("_Copy"));
+			//Copy->SetActorLabel(Copy->GetActorLabel() + TEXT("_Copy"));
 			UPortableComponent* portable = Cast<UPortableComponent>(Copy->GetComponentByClass(UPortableComponent::StaticClass()));
 			portable->IsCopy = true;
 			portable->GetOwnerMesh()->SetEnableGravity(false);
