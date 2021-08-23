@@ -89,9 +89,7 @@ void APortalsCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAxis("MoveRight", this, &APortalsCharacter::MoveRight);
 
 	PlayerInputComponent->BindAxis("Turn", this, &APortalsCharacter::TurnAtRate);
-	PlayerInputComponent->BindAxis("TurnRate", this, &APortalsCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("LookUp", this, &APortalsCharacter::LookUpAtRate);
-	PlayerInputComponent->BindAxis("LookUpRate", this, &APortalsCharacter::LookUpAtRate);
 }
 
 void APortalsCharacter::OnFire()
